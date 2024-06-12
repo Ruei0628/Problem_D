@@ -9,12 +9,10 @@ using namespace std;
 
 class Zone {
 public:
-  Zone();
+  Zone() {}
   string name;
   vector<pair<double, double>> vertices;
   virtual ~Zone() {}
 };
-
-Zone::Zone() {}
 
 #endif // ZONE_H_INCLUDED
