@@ -1,7 +1,5 @@
 #include "Block.h"
 
-using namespace std;
-
 Block::Block() {}
 
 Block::Block(Block const &b) {
@@ -133,103 +131,90 @@ void Block::ParserAllBlocks(int const &testCase) {
   while (getline(file_chip_top, line)) {
     Block tempBlock;
     if (line.find(startWith) == 0) {
-      // blockName
-      if (regex_search(line, m, getBlockName)) {
-        tempBlock.name = m.str();
+		// blockName
+		if (regex_search(line, m, getBlockName)) {
+			tempBlock.name = m.str();
+			// Open caseOO_cfg.json to get
+			// through_block_net_num, through_block_edge_net_num
+			// block_port_region, is_feedthroughable, is_tile
+			ifstream file_cfg("case" + to_string(testCase) + "_cfg.json");
+			stringstream buffer;
+			buffer << file_cfg.rdbuf();
+			string jsonString = buffer.str();
+			Document document;
+			document.Parse(jsonString.c_str());
+			for (const auto &block : document.GetArray()) {
+				if (tempBlock.name == block["block_name"].GetString()) {
+					tempBlock.through_block_net_num = block["through_block_net_num"].GetInt();
+					tempBlock.is_feedthroughable = block["is_feedthroughable"].GetString() == string("True");
+					tempBlock.is_tile = block["is_tile"].GetString() == string("True");
+				}
 
-        // Open caseOO_cfg.json to get
-        // through_block_net_num, through_block_edge_net_num
-        // block_port_region, is_feedthroughable, is_tile
-        ifstream file_cfg("case" + to_string(testCase) + "_cfg.json");
-        stringstream buffer;
-        buffer << file_cfg.rdbuf();
-        string jsonString = buffer.str();
-        Document document;
-        document.Parse(jsonString.c_str());
+				// through_block_edge_net_num
+				const Value &TBENN = block["through_block_edge_net_num"];
+				if (TBENN.Size()) {
+					tempBlock.through_block_edge_net_num.blockEdge[0] = make_pair(TBENN[0][0].GetDouble(), TBENN[0][1].GetDouble());
+					tempBlock.through_block_edge_net_num.blockEdge[1] = make_pair(TBENN[1][0].GetDouble(), TBENN[1][1].GetDouble());
+					tempBlock.through_block_edge_net_num.net_num = TBENN[2].GetInt();
+				}
+				// block_port_region
+				const Value &BPR = block["block_port_region"];
+				if (BPR.Size()) {
+					tempBlock.block_port_region.push_back(make_pair(BPR[0][0].GetDouble(), BPR[0][1].GetDouble()));
+            		tempBlock.block_port_region.push_back(make_pair(BPR[1][0].GetDouble(), BPR[1][1].GetDouble()));
+        		}
+        	}
+        	file_cfg.close();
+    	}
 
-        for (const auto &block : document.GetArray()) {
-          if (tempBlock.name == block["block_name"].GetString()) {
-            tempBlock.through_block_net_num =
-                block["through_block_net_num"].GetInt();
-            tempBlock.is_feedthroughable =
-                block["is_feedthroughable"].GetString() == string("True");
-            tempBlock.is_tile = block["is_tile"].GetString() == string("True");
-          }
+		// blkID
+		if (regex_search(line, m, getBlkID)) {
+			tempBlock.blkID = m.str();
 
-          // through_block_edge_net_num
-          const Value &TBENN = block["through_block_edge_net_num"];
-          if (TBENN.Size()) {
-            tempBlock.through_block_edge_net_num.blockEdge[0] =
-                make_pair(TBENN[0][0].GetDouble(), TBENN[0][1].GetDouble());
-            tempBlock.through_block_edge_net_num.blockEdge[1] =
-                make_pair(TBENN[1][0].GetDouble(), TBENN[1][1].GetDouble());
-            tempBlock.through_block_edge_net_num.net_num = TBENN[2].GetInt();
-          }
-          // block_port_region
-          const Value &BPR = block["block_port_region"];
-          if (BPR.Size()) {
-            tempBlock.block_port_region.push_back(
-                make_pair(BPR[0][0].GetDouble(), BPR[0][1].GetDouble()));
-            tempBlock.block_port_region.push_back(
-                make_pair(BPR[1][0].GetDouble(), BPR[1][1].GetDouble()));
-          }
-        }
-        file_cfg.close();
-      }
+			// Open blk file to get vertices
+			ifstream file_blk("case" + to_string(testCase) + "_def/" + tempBlock.blkID + ".def");
+			int lineNum = 1;
+			string verticesInfo;
+			while (getline(file_blk, verticesInfo)) {
+				if (lineNum == 8)
+					break;
+				lineNum++;
+			}
+        	file_blk.close();
+        	sregex_iterator iter(verticesInfo.begin(), verticesInfo.end(), getCoordinate);
+        	sregex_iterator end;
+        	while (iter != end) {
+        		smatch match = *iter;
+        		double x = stod(match[1].str());
+        		double y = stod(match[2].str());
+        		tempBlock.vertices.push_back(make_pair(x, y));
+        		++iter;
+        	}
+        	if (tempBlock.vertices.size() == 2)
+        		tempBlock.expandVertices();
+    	}
 
-      // blkID
-      if (regex_search(line, m, getBlkID)) {
-        tempBlock.blkID = m.str();
+    	// getCoordinate
+    	if (std::regex_search(line, m, getCoordinate) && m.size() == 3) {
+    		tempBlock.coordinate = make_pair(stod(m[1]), stod(m[2]));
+    	}
 
-        // Open blk file to get vertices
-        ifstream file_blk("case" + to_string(testCase) + "_def/" +
-                          tempBlock.blkID + ".def");
-        int lineNum = 1;
-        string verticesInfo;
-        while (getline(file_blk, verticesInfo)) {
-          if (lineNum == 8)
-            break;
-          lineNum++;
-        }
-        file_blk.close();
-        sregex_iterator iter(verticesInfo.begin(), verticesInfo.end(),
-                             getCoordinate);
-        sregex_iterator end;
-        while (iter != end) {
-          smatch match = *iter;
-          double x = stod(match[1].str());
-          double y = stod(match[2].str());
-          tempBlock.vertices.push_back(make_pair(x, y));
-          ++iter;
-        }
-        if (tempBlock.vertices.size() == 2)
-          tempBlock.expandVertices();
-      }
-
-      // getCoordinate
-      if (std::regex_search(line, m, getCoordinate) && m.size() == 3) {
-        tempBlock.coordinate = make_pair(stod(m[1]), stod(m[2]));
-      }
-
-      // getFacingFlip
-      tempBlock.facingFlip = line.substr(line.length() - 4, 2);
-
-      // do facingAndFlip
-      tempBlock.facingAndFlip(tempBlock.facingFlip, tempBlock.vertices);
-      tempBlock.facingAndFlip(tempBlock.facingFlip,
-                              tempBlock.through_block_edge_net_num.blockEdge);
-      tempBlock.facingAndFlip(tempBlock.facingFlip,
-                              tempBlock.block_port_region);
-
-      // do shiftCoordinate
-      tempBlock.shiftCoordinate(tempBlock.coordinate, tempBlock.vertices);
-      tempBlock.shiftCoordinate(tempBlock.coordinate,
-                                tempBlock.through_block_edge_net_num.blockEdge);
-      tempBlock.shiftCoordinate(tempBlock.coordinate,
-                                tempBlock.block_port_region);
-
-      // read into totBLOCK
-      this->allBlocks.push_back(tempBlock);
+    	// getFacingFlip
+    	tempBlock.facingFlip = line.substr(line.length() - 4, 2);	
+    	// do facingAndFlip
+    	tempBlock.facingAndFlip(tempBlock.facingFlip, tempBlock.vertices);
+    	tempBlock.facingAndFlip(tempBlock.facingFlip,
+    	                        tempBlock.through_block_edge_net_num.blockEdge);
+    	tempBlock.facingAndFlip(tempBlock.facingFlip,
+    	                        tempBlock.block_port_region);	
+    	// do shiftCoordinate
+    	tempBlock.shiftCoordinate(tempBlock.coordinate, tempBlock.vertices);
+    	tempBlock.shiftCoordinate(tempBlock.coordinate,
+    	                          tempBlock.through_block_edge_net_num.blockEdge);
+    	tempBlock.shiftCoordinate(tempBlock.coordinate,
+    	                          tempBlock.block_port_region);	
+    	// read into totBLOCK
+    	this->allBlocks.push_back(tempBlock);
     }
   }
   file_chip_top.close();

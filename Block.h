@@ -39,8 +39,7 @@ public:
   void ParserAllBlocks(int const &case_serial_number);
   void expandVertices();
   void facingAndFlip(string facingFlip, vector<pair<double, double>> &vertices);
-  void shiftCoordinate(pair<double, double> shift,
-                       vector<pair<double, double>> &vertices);
+  void shiftCoordinate(pair<double, double> shift, vector<pair<double, double>> &vertices);
   void showBlockInfo();
 };
 

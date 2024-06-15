@@ -1,107 +1,105 @@
 ﻿#include "Net.h"
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <vector>
 
-using namespace std;
+void Net::ParserAllNets(int const &testCase) {
+  ifstream file("test" + to_string(testCase) + ".json");
 
-void readFile(const char *filename, vector<Net> &Nets) {
-  ifstream file(filename);
-  if (!file.is_open()) {
-    cerr << "Unable to open file." << endl;
-    return;
-  }
+  stringstream buffer;
+  buffer << file.rdbuf();
+  string jsonString = buffer.str();
+  Document document;
+  document.Parse(jsonString.c_str());
+  for (const auto &net : document.GetArray()) {
+    Net tempNet;
+    tempNet.ID = net["ID"].GetInt();
+    tempNet.TX.TX_NAME = net["TX"].GetString();
+    tempNet.num = net["NUM"].GetInt();
 
-  string line;
-  while (getline(file, line)) {
-    if (line.find('{') != string::npos) {
-      Net net;
-      string txBlockOrRegion, txID;
-      getline(file, line);
-      sscanf_s(line.c_str(), " \"ID\":%d,", &net.ID);
-      getline(file, line);
-      size_t pos = line.find('_');
-      txBlockOrRegion = line.substr(8, pos - 8);
-      txID = line.substr(pos + 1, line.length() - pos - 3);
-      net.TX.TX_info.first = (txBlockOrRegion == "BLOCK") ? 0 : 1;
-      net.TX.TX_info.second = stoi(txID);
-      getline(file, line);
-      string rxBlockOrRegion, rxID;
-      pos = line.find('[');
-      size_t endPos = line.find(']');
-      string rxLine = line.substr(pos + 1, endPos - pos - 1);
-      istringstream iss(rxLine);
-      string rx;
-      while (getline(iss, rx, ',')) {
-        rx = rx.substr(1, rx.length() - 2);
-        size_t pos = rx.find('_');
-        rxBlockOrRegion = rx.substr(0, pos);
-        rxID = rx.substr(pos + 1);
-        RX newRX;
-        newRX.RX_info.first = (rxBlockOrRegion == "BLOCK") ? 0 : 1;
-        newRX.RX_info.second = stoi(rxID);
-        net.RXs.push_back(newRX);
+	vector<string> tempRXNameArray;
+    // Parse RX array
+    const Value &RX = net["RX"];
+    for (const auto &rxName : RX.GetArray()) {
+		struct RX tempRX;
+      tempNet.RXs.push_back(rxName.GetString());
+    }
+    // Parse RX_COORD array
+    const Value &RX_COORD = net["RX_COORD"];
+    for (const auto &coordinate : RX_COORD.GetArray()) {
+      if (coordinate.IsArray() && coordinate.Size() == 2) {
+        double x = coordinate[0].GetDouble();
+        double y = coordinate[1].GetDouble();
+        tempNet.rxCoord.push_back(make_pair(x, y));
       }
-      getline(file, line);
-      sscanf_s(line.c_str(), " \"NUM\":%d,", &net.num);
-      getline(file, line); // MUST_THROUGH
-      getline(file, line); // HMFT_MUST_THROUGH
-      getline(file, line);
-      sscanf_s(line.c_str(), " \"TX_COORD\":[%lf,%lf],", &net.TX.TX_COORD.first,
-               &net.TX.TX_COORD.second);
-      getline(file, line);
-      pos = line.find('[');
-      endPos = line.find_last_of(']');
-      string rxCoordLine = line.substr(pos + 1, endPos - pos - 1);
-      istringstream issCoord(rxCoordLine);
-      string coordPair;
-      int rxIndex = 0;
-      while (getline(issCoord, coordPair, ']')) {
-        size_t coordPos = coordPair.find('[');
-        if (coordPos != string::npos) {
-          coordPair = coordPair.substr(coordPos + 1);
-          double x, y;
-          sscanf_s(coordPair.c_str(), "%lf,%lf", &x, &y);
-          if (rxIndex < net.RXs.size()) {
-            net.RXs[rxIndex].RX_COORD = {x, y}; // Access directly
-          } else {
-            cerr << "Error: RX index out of range. rxIndex: " << rxIndex
-                 << ", RXs size: " << net.RXs.size() << endl;
-          }
-          rxIndex++;
+    }
+
+    // Parse TX_COORD
+    const Value &TX_COORD = net["TX_COORD"];
+    if (TX_COORD.IsArray() && TX_COORD.Size() == 2) {
+      tempNet.TX.TX_COORD = make_pair(TX_COORD[0].GetDouble(), TX_COORD[1].GetDouble());
+    }
+
+    // Parse HMFT_MUST_THROUGH
+    const Value &HMFTMT = net["HMFT_MUST_THROUGH"];
+    if (HMFTMT.IsArray()) {
+      for (const auto &coordinate : HMFTMT.GetArray()) {
+        if (coordinate.IsArray() && coordinate.Size() == 2) {
+          double x = coordinate[0].GetDouble();
+          double y = coordinate[1].GetDouble();
+          tempNet.hmftMustThrough.push_back(make_pair(x, y));
         }
       }
-      Nets.push_back(net);
     }
+
+    // Parse MUST_THROUGH
+    const Value &MT = net["MUST_THROUGH"];
+    if (MT.IsArray()) {
+      for (const auto &coordinate : MT.GetArray()) {
+        if (coordinate.IsArray() && coordinate.Size() == 2) {
+          double x = coordinate[0].GetDouble();
+          double y = coordinate[1].GetDouble();
+          tempNet.mustThrough.push_back(make_pair(x, y));
+        }
+      }
+    }
+
+	this->allNets.push_back(tempNet);
   }
   file.close();
 }
 
-int main(){
-  vector<Net> Nets;
-  readFile("case4.json", Nets);
+Net Net::getNet(int const &id) const {
+	for (const Net &n : allNets) {
+		if (n.ID == id) return n;
+	}
+}
 
-  for (const auto &net : Nets) {
-    cout << "ID: " << net.ID << endl;
-    cout << "TX: " << (net.TX.TX_info.first == 0 ? "BLOCK" : "REGION") << "_"
-         << net.TX.TX_info.second << endl;
-    cout << "RX: [";
-    for (size_t i = 0; i < net.RXs.size(); ++i) {
-      cout << (net.RXs[i].RX_info.first == 0 ? "BLOCK" : "REGION") << "_"
-           << net.RXs[i].RX_info.second << ", ";
+void Net::showNetInfo(){
+	cout << "ID: " << ID << endl
+	<< "TX: " << TX.TX_NAME << endl
+	<< "RX: " << endl;
+	for(const RX &zone: RXs){
+		cout << zone.RX_NAME << endl;
+	}
+    cout << "NUM: " << num << endl
+	<< "MUST_THROUGH: " << endl;
+	if (MUST_THROUGHs.size()) {
+        for (const MUST_THROUGH &t : MUST_THROUGHs) {
+        	cout << t.blockName << ", (" << t.edgeIn.first << ", "
+            << t.edgeIn.second << "), (" << t.edgeOut.first << ", "
+        	<< t.edgeOut.second << endl;
+        }
     }
-    cout << "\b\b]" << endl;
-    cout << "Num: " << net.num << endl;
-    cout << "TX_COORD: [" << net.TX.TX_COORD.first << ", "
-         << net.TX.TX_COORD.second << "]" << endl;
-    cout << "RX_COORD: [";
-    for (size_t i = 0; i < net.RXs.size(); ++i) {
-      cout << "[" << net.RXs[i].RX_COORD.first << ","
-           << net.RXs[i].RX_COORD.second << "], ";
+    cout << "HMFT_MUST_THROUGH: " << endl;
+    if (HMFT_MUST_THROUGHs.size()) {
+    	for (const HMFT_MUST_THROUGH &t : HMFT_MUST_THROUGHs){
+			cout << t.blockName << ", (" 
+			<< t.edgeIn.first << ", " << t.edgeIn.second<< "), ("
+			<< t.edgeOut.first << ", " << t.edgeOut.second << endl;
+		}
     }
-    cout.unsetf(ios::fixed);
-    cout << "\b\b]\n-----------------------------------------------\n";
-  }
+    cout << "TX_COORD: " << TX.TX_COORD.first << ", " << TX.TX_COORD.second << endl;
+    cout << "RX_COORD: " << endl;
+	for (const RX &coord : RXs){
+		cout << coord.RX_COORD.first << ", " << coord.RX_COORD.second << endl;
+    }
+    cout << "----------------------" << endl;
 }
