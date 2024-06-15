@@ -92,7 +92,7 @@ Net Net::getNet(int const &id) const {
 	for (const Net &n : allNets) {
 		if (n.ID == id) return n;
 	}
-}
+} // have sex
 
 void Net::showNetInfo(){
 	cout << "ID: " << ID << endl
