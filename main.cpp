@@ -12,7 +12,7 @@ using namespace std;
 
 int main()
 {
-	int testCase = 4;
+	int testCase = 5;
 	/*
 	AllZone allZone(testCase);
 	allZone.getBlock("BLOCK_1").showBlockInfo();
@@ -21,7 +21,10 @@ int main()
 
 	Net Nets;
 	Nets.ParserAllNets(testCase);
-	Nets.allNets[3].showNetInfo();
+	for(int i = 0; i < Nets.allNets.size(); i++){
+		Nets.allNets[i].showNetInfo();
+	}
 }
 
 // cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ main.cpp AllZone.cpp Block.cpp Net.cpp Region.cpp -o main} ; if ($?) { .\main }
+// cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ main.cpp Net.cpp -o main} ; if ($?) { .\main }

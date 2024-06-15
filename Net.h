@@ -20,18 +20,20 @@ struct TX {
 struct RX {
   string RX_NAME;
   pair<double, double> RX_COORD;
+
+  RX(const string &name, const pair<double, double> &coord) : RX_NAME(name), RX_COORD(coord) {}
 };
 
 struct MUST_THROUGH {
-  pair<double, double> edgeIn;
-  pair<double, double> edgeOut;
   string blockName;
+  double edgeIn[4];
+  double edgeOut[4];
 };
 
 struct HMFT_MUST_THROUGH {
-  pair<double, double> edgeIn;
-  pair<double, double> edgeOut;
   string blockName;
+  double edgeIn[4];
+  double edgeOut[4];
 };
 
 class Net {
