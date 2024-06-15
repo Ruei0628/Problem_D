@@ -19,6 +19,10 @@ int main()
 	Net Nets;
 	Nets.ParserAllNets(testCase);
 
+	for(int i = 0; i<Nets.allNets.size(); i++){
+		Nets.allNets[i].showNetInfo();
+	}
+
     string determine = Nets.allNets[1159].TX.TX_NAME;
 	double x, y;
 	if(determine[0] == 'B'){
