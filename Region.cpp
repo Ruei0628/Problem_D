@@ -24,7 +24,7 @@ void Region::showRegionInfo() {
   for (pair<double, double> v : vertices) {
     cout << "(" << v.first << ", " << v.second << ")" << endl;
   }
-  cout << "------------------------" << endl;
+  cout << "----------------------" << endl;
 }
 
 void Region::ParserAllRegions(int const &testCase) {

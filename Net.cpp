@@ -1,7 +1,7 @@
 ﻿#include "Net.h"
 
 void Net::ParserAllNets(int const &testCase) {
-  ifstream file("test" + to_string(testCase) + ".json");
+  ifstream file("case" + to_string(testCase) + ".json");
 
   stringstream buffer;
   buffer << file.rdbuf();
@@ -41,47 +41,52 @@ void Net::ParserAllNets(int const &testCase) {
 
     // Parse HMFT_MUST_THROUGH
     const Value &HMFTMT = net["HMFT_MUST_THROUGH"];
-    for (const auto &hmftmt : HMFTMT.GetArray()) {
-		const Value &hmftmtData = hmftmt;
-		HMFT_MUST_THROUGH tempHMFTMT;
-		// First get the zone name
-		tempHMFTMT.blockName = hmftmtData[0].GetString();
-		// Next get edgeIn coordinates, there are four of them
-		const Value &dataEdgeIn = hmftmtData[1];
-		for(int i = 0; i < dataEdgeIn.Size(); i++){
-            tempHMFTMT.edgeIn[i] = dataEdgeIn[i].GetDouble();
-        }
-        // Then get edgeOut coordinates, there are four of them
-        const Value &dataEdgeOut = hmftmtData[2];
-        for (int i = 0; i < dataEdgeOut.Size(); i++) {
-        	tempHMFTMT.edgeOut[i] = dataEdgeOut[i].GetDouble();
-        }
-		// So we get name, edgeIn, edgeOut happily
-		// Finally we write these into the HMFTMTs
-        tempNet.HMFT_MUST_THROUGHs.push_back(tempHMFTMT);
-    }
+	if (HMFTMT.IsArray()) {
+		for (const auto &hmftmt : HMFTMT.GetArray()) {
+			const Value &hmftmtData = hmftmt;
+			HMFT_MUST_THROUGH tempHMFTMT;
+			// First get the zone name
+			tempHMFTMT.blockName = hmftmtData[0].GetString();
+			// Next get edgeIn coordinates, there are four of them
+			const Value &dataEdgeIn = hmftmtData[1];
+			for(int i = 0; i < dataEdgeIn.Size(); i++){
+        	    tempHMFTMT.edgeIn[i] = dataEdgeIn[i].GetDouble();
+        	}
+        	// Then get edgeOut coordinates, there are four of them
+        	const Value &dataEdgeOut = hmftmtData[2];
+        	for (int i = 0; i < dataEdgeOut.Size(); i++) {
+        		tempHMFTMT.edgeOut[i] = dataEdgeOut[i].GetDouble();
+        	}
+			// So we get name, edgeIn, edgeOut happily
+			// Finally we write these into the HMFTMTs
+        	tempNet.HMFT_MUST_THROUGHs.push_back(tempHMFTMT);
+    	}
+	}
+    
 
     // Parse MUST_THROUGH
     const Value &MT = net["MUST_THROUGH"];
-    for (const auto &mt : MT.GetArray()) {
-    	const Value &mtData = mt;
-    	MUST_THROUGH tempMT;
-    	// First get the zone name
-    	tempMT.blockName = mtData[0].GetString();
-    	// Next get edgeIn coordinates, there are four of them
-    	const Value &dataEdgeIn = mtData[1];
-    	for (int i = 0; i < dataEdgeIn.Size(); i++) {
-    	  tempMT.edgeIn[i] = dataEdgeIn[i].GetDouble();
+    if (MT.IsArray()) {
+		for (const auto &mt : MT.GetArray()) {
+    		const Value &mtData = mt;
+    		MUST_THROUGH tempMT;
+    		// First get the zone name
+    		tempMT.blockName = mtData[0].GetString();
+    		// Next get edgeIn coordinates, there are four of them
+    		const Value &dataEdgeIn = mtData[1];
+    		for (int i = 0; i < dataEdgeIn.Size(); i++) {
+    		  tempMT.edgeIn[i] = dataEdgeIn[i].GetDouble();
+    		}
+    		// Then get edgeOut coordinates, there are four of them
+    		const Value &dataEdgeOut = mtData[2];
+    		for (int i = 0; i < dataEdgeOut.Size(); i++) {
+    		  tempMT.edgeOut[i] = dataEdgeOut[i].GetDouble();
+    		}
+    		// So we get name, edgeIn, edgeOut happily
+    		// Finally we write these into the HMFTMTs
+    		tempNet.MUST_THROUGHs.push_back(tempMT);
     	}
-    	// Then get edgeOut coordinates, there are four of them
-    	const Value &dataEdgeOut = mtData[2];
-    	for (int i = 0; i < dataEdgeOut.Size(); i++) {
-    	  tempMT.edgeOut[i] = dataEdgeOut[i].GetDouble();
-    	}
-    	// So we get name, edgeIn, edgeOut happily
-    	// Finally we write these into the HMFTMTs
-    	tempNet.MUST_THROUGHs.push_back(tempMT);
-    }
+	}
 
     this->allNets.push_back(tempNet);
   }
