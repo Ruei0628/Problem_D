@@ -1,0 +1,22 @@
+就是說阿，
+一開始起點先往四個方向發散，遇到牆壁之後停下來
+start point (x0, y0)
+	goNorth (x0, y = y_max(until hit obstacle))
+	goSouth (x0, y = y_min(until hit obstacle))
+	goWest (x = x_min(until hit obstacle), y0)
+	goEast (x = x_max(until hit obstacle), y0)
+(然後終點做一樣的事情？
+end point (xn, yn)
+	goNorth (xn, y = y_max(until hit obstacle))
+	goSouth (xn, y = y_min(until hit obstacle))
+	goWest (x = x_min(until hit obstacle), yn)
+	goEast (x = x_max(until hit obstacle), yn)
+)
+然後看要不要更新搜尋與終點最近的組合，
+也就是說，我們現在有 start' * 4, end' * 4，這樣組合會有16個，
+然後挑最近的更新為新的 start point 跟 end point，反覆做。
+最後(要try 幾次？)如果沒找到的話，要return沒找到，並往回找。
+
+所以現在我們要研究的是那個 obstacle 的問題。
+應該要有一個整個 chip 的牆壁的分布圖，然後判斷
+剛剛有問 chatGPT 他好像有給幾個寫法。

@@ -23,6 +23,8 @@ int main()
 		Nets.allNets[i].showNetInfo();
 	}
 
+	// 這段主要是在講說，因為TX可能是 block 或 region，所以沒辦法直接使用 getZone.getCoordinate
+	// 所以才要去判斷現在要
     string determine = Nets.allNets[1159].TX.TX_NAME;
 	double x, y;
 	if(determine[0] == 'B'){

@@ -1,7 +1,7 @@
 ﻿#include "Net.h"
 
 void Net::ParserAllNets(int const &testCase) {
-  ifstream file("case" + to_string(testCase) + ".json");
+  ifstream file("test" + to_string(testCase) + ".json");
 
   stringstream buffer;
   buffer << file.rdbuf();
