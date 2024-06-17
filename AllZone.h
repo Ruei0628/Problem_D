@@ -3,6 +3,7 @@
 
 #include "Block.h"
 #include "Region.h"
+#include "Wall.h"
 #include "Zone.h"
 
 using namespace std;
@@ -11,6 +12,8 @@ class AllZone : public Zone {
 public:
   AllZone(int const &testCase);
   vector<Zone *> totZone;
+
+  Wall Walls;
 
   void showAllZone();
   Block getBlock(string) const;

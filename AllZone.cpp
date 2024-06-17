@@ -1,4 +1,5 @@
 #include "AllZone.h"
+#include "Wall.h"
 
 using namespace std;
 
@@ -8,6 +9,8 @@ AllZone::AllZone(int const &testCase) {
 
   Blocks.ParserAllBlocks(testCase);
   Regions.ParserAllRegions(testCase);
+
+  Walls.getBlockVertices(Blocks);
 
   for (Block b : Blocks.allBlocks) {
     totZone.push_back(new Block(b));

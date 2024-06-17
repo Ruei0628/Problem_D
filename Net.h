@@ -47,6 +47,7 @@ public:
   vector<MUST_THROUGH> MUST_THROUGHs;
   vector<HMFT_MUST_THROUGH> HMFT_MUST_THROUGHs;
 
+  vector<pair<double, double>> allNodes;
   vector<Net> allNets;
 
   void ParserAllNets(int const &testCase);
