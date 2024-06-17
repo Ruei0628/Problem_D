@@ -23,19 +23,73 @@ bool compareBySecond(const pair<Net, double> &a, const pair<Net, double> &b) {
   return a.second < b.second;
 }
 
-bool routing(Net const &n, vector<Wall> const &walls){
-	for(Wall const &w : walls){
-		// start point go N, S, W, E
-		// when go W or E, trigger "goHorizontally"
-		// goHorizontally(){
-		// which means will hit vertical walls
-		// so for (wall in walls)
-		// if (wall.isVertical)
-		// 
-		// }
-		// 
-	}
+pair<double, double> getCoordinates(const string &name, const pair<double, double> &offset, const AllZone &allZone) {
+    double x, y;
+    if(name[0] == 'B') {
+        x = allZone.getBlock(name).coordinate.first;
+        y = allZone.getBlock(name).coordinate.second;
+    }
+    else if(name[0] == 'R') {
+        x = allZone.getRegion(name).vertices[0].first;
+        y = allZone.getRegion(name).vertices[0].second;
+    }
+    double newX = x + offset.first;
+    double newY = y + offset.second;
+    return make_pair(newX, newY);
+}
 
+// Updated getBeginPoint function
+pair<double, double> getBeginPoint(const RX &thePoint, const AllZone &allZone) {
+    return getCoordinates(thePoint.RX_NAME, thePoint.RX_COORD, allZone);
+}
+
+// Updated getEndPoint function
+pair<double, double> getEndPoint(const TX &thePoint, const AllZone &allZone) {
+    return getCoordinates(thePoint.TX_NAME, thePoint.TX_COORD, allZone);
+}
+
+bool routing(pair<double, double> beginPoint, string beginZone, 
+			 pair<double, double> endPoint, string endZone, vector<Wall> const &walls){
+	double y = beginPoint.second;
+	double x = beginPoint.first;
+
+	// go left:
+	for(auto iter = walls.rbegin(); iter != walls.rend(); iter++){
+		Wall const &w = *iter;
+		if (w.name == beginZone) continue;
+		if (!w.isVertical) continue;
+		if (w.fixedCoord < x && w.rangeCoord[0] <= y && w.rangeCoord[1] >= y){
+			// we found the left wall
+		}
+	}
+	
+	// go right:
+	for(Wall const &w : walls){
+		if (w.name == beginZone) continue;
+		if (!w.isVertical) continue;
+		if (w.fixedCoord > x && w.rangeCoord[0] <= y && w.rangeCoord[1] >= y){
+			// we found the right wall
+		}
+	}
+	
+	// go up:
+	for(Wall const &w : walls){
+		if (w.name == beginZone) continue;
+		if (w.isVertical) continue;
+		if (w.fixedCoord > y && w.rangeCoord[0] <= x && w.rangeCoord[1] >= x){
+			// we found the up wall
+		}
+	}
+	
+	// go down:
+	for(auto iter = walls.rbegin(); iter != walls.rend(); iter++){
+		Wall const &w = *iter;
+		if (w.name == beginZone) continue;
+		if (w.isVertical) continue;
+		if (w.fixedCoord < y && w.rangeCoord[0] <= x && w.rangeCoord[1] >= x){
+			// we found the down wall
+		}
+	}
 }
 
 int main()
@@ -66,21 +120,7 @@ int main()
 	sort(netMinLength.begin(), netMinLength.end(), compareBySecond);
 	
 	// 轉換成絕對座標
-	for(Net const &n : Nets.allNets){
-		string determine = n.TX.TX_NAME;
-		double x, y;
-		if(determine[0] == 'B'){
-			x = allZone.getBlock(determine).coordinate.first;
-			y = allZone.getBlock(determine).coordinate.second;
-		}
-		else if(determine[0] == 'R') {
-			x = allZone.getRegion(determine).vertices[0].first;
-			y = allZone.getRegion(determine).vertices[0].second;
-		}
-		x += n.TX.TX_COORD.first;
-		y += n.TX.TX_COORD.second;
-
-	}
+	
 }
 
 // cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ main.cpp AllZone.cpp Block.cpp Net.cpp Region.cpp Wall.cpp -o main} ; if ($?) { .\main }

@@ -1,4 +1,4 @@
-﻿#include "Net.h"
+#include "Net.h"
 
 void Net::ParserAllNets(int const &testCase) {
   ifstream file("test" + to_string(testCase) + ".json");

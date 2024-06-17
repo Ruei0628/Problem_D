@@ -7,7 +7,7 @@
 
 using namespace std;
 
-class Wall {
+class Wall : public Block{
 public:
   Wall(){}
   Wall(bool, double, double[2]);
