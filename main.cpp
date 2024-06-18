@@ -122,7 +122,6 @@ int main()
 		for(RX const &rx : n.RXs){
 			coords.push_back(getEndPoint(rx, allZone));
 		}
-		coords;
 		coords.push_back(getBeginPoint(n.TX, allZone));
 		double boundBox = findBoundBox(coords);
 		netMinBox.push_back(make_pair(n, boundBox));
