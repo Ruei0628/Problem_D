@@ -13,10 +13,19 @@
 
 using namespace std;
 
-double cartesianLength(pair<double, double> tx, pair<double, double> rx){
-	double x_length = abs(tx.first - rx.first);
-	double y_length = abs(tx.second - rx.second);
-	return x_length + y_length;
+enum class Direction { L, R, U, D };
+
+double findBoundBox(vector<pair<double, double>> const &coords){
+	double x_min = coords[0].first, x_max = coords[0].first,
+		   y_min = coords[0].second, y_max = coords[0].second;
+	for (auto const &c : coords) {
+		double x_this = c.first, y_this = c.second;
+		if (x_this > x_max) x_max = x_this;
+		if (x_this < x_min) x_min = x_this;
+		if (y_this > y_max) y_max = y_this;
+		if (y_this < y_min) y_min = y_this;
+	}
+	return (x_max - x_min) * (y_max - y_min);
 }
 
 bool compareBySecond(const pair<Net, double> &a, const pair<Net, double> &b) {
@@ -39,17 +48,18 @@ pair<double, double> getCoordinates(const string &name, const pair<double, doubl
 }
 
 // Updated getBeginPoint function
-pair<double, double> getBeginPoint(const RX &thePoint, const AllZone &allZone) {
-    return getCoordinates(thePoint.RX_NAME, thePoint.RX_COORD, allZone);
-}
-
-// Updated getEndPoint function
-pair<double, double> getEndPoint(const TX &thePoint, const AllZone &allZone) {
+pair<double, double> getBeginPoint(const TX &thePoint, const AllZone &allZone) {
     return getCoordinates(thePoint.TX_NAME, thePoint.TX_COORD, allZone);
 }
 
+// Updated getEndPoint function
+pair<double, double> getEndPoint(const RX &thePoint, const AllZone &allZone) {
+    return getCoordinates(thePoint.RX_NAME, thePoint.RX_COORD, allZone);
+}
+
 bool routing(pair<double, double> beginPoint, string beginZone, 
-			 pair<double, double> endPoint, string endZone, vector<Wall> const &walls){
+			 pair<double, double> endPoint, string endZone,
+			 vector<Wall> const &walls, Direction dir){
 	double y = beginPoint.second;
 	double x = beginPoint.first;
 
@@ -80,7 +90,7 @@ bool routing(pair<double, double> beginPoint, string beginZone,
 			// we found the up wall
 		}
 	}
-	
+
 	// go down:
 	for(auto iter = walls.rbegin(); iter != walls.rend(); iter++){
 		Wall const &w = *iter;
@@ -104,22 +114,23 @@ int main()
 
 	vector<Wall> walls = allZone.Walls.allWalls;
 
-	vector<pair<Net, double>> netMinLength;
+	vector<pair<Net, double>> netMinBox;
 
-	// 計算笛卡爾距離
+	// 計算笛卡爾面積
 	for(Net const &n : Nets.allNets){
-		double len = 0;
+		vector<pair<double, double>> coords;
 		for(RX const &rx : n.RXs){
-			len += cartesianLength(n.TX.TX_COORD, rx.RX_COORD);
+			coords.push_back(getEndPoint(rx, allZone));
 		}
-		int sizeOfRXs = n.RXs.size();
-		netMinLength.push_back(make_pair(n, len / sizeOfRXs));
+		coords;
+		coords.push_back(getBeginPoint(n.TX, allZone));
+		double boundBox = findBoundBox(coords);
+		netMinBox.push_back(make_pair(n, boundBox));
 	}
-
 	// 把 net 用 minLength 重新排序
-	sort(netMinLength.begin(), netMinLength.end(), compareBySecond);
-	
-	// 轉換成絕對座標
+    sort(netMinBox.begin(), netMinBox.end(), compareBySecond);
+
+    // 轉換成絕對座標
 	
 }
 
