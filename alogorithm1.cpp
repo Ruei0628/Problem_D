@@ -1,8 +1,9 @@
 #include <vector>
+#include "AllZone.h"
 
 using namespace std;
 
-constexpr double DX = 0.001;
+  double DX = 0.001;
 constexpr double DY = 0.001;
 
 class Point {
@@ -29,14 +30,65 @@ public:
 		Point newPoint(coord.x + dx, coord.y + dy);
 		return Probe(newPoint, isFromSource, !directionX);
 	}
+
+	bool hitWall(vector<Wall> const &walls){
+		// 兩種情況要停下來
+		// 1. 碰到不是自己來源的 non-feedthroughable block
+		// (自己來源的意思是，如果是 source 的話就是 RX 的那個 block 或 region)
+		// (如果是 target 的話就是 TX 的那個 block 或 region)
+		// 2. 碰到 chip 的 boundary
+		for(Wall const &w : walls) {
+			// 如果是起點而且碰到起點 zone 的牆壁則忽略
+			if (beginZone == w.name) continue;
+			// 走橫向的 probes 碰到垂直的牆壁
+			if (directionX && w.isVertical){
+				// 好像就不用判斷說是往右還是往左
+				if(coord.x == w.fixedCoord && w.inRange(coord.y)){
+					return 1;
+				}
+			}
+			// 走縱向的 probes 碰到水平的牆壁
+			if (!directionX && !w.isVertical){
+				// 好像就不用判斷說是往上還是往下
+				if(coord.x == w.fixedCoord && w.inRange(coord.y)){
+					return 1;
+				}
+			}
+		}
+		return 0;
+	}
 };
 
-bool hitWall(){
-	return 0;
+bool extend2Probes(Probe& currentProbe, double X, double Y,
+				   const AllZone& allZone, vector<Probe>& probeNew) {
+
+    // 正方向的增加 probe
+    Probe addPositiveProbe = currentProbe.extendProbe(X, Y);
+    if (addPositiveProbe.hitWall(allZone.Walls.allWalls)) return false;
+	probeNew.push_back(addPositiveProbe);
+
+    // 負方向的增加 probe
+    Probe addNegativeProbe = currentProbe.extendProbe(-X, -Y);
+    if (addNegativeProbe.hitWall(allZone.Walls.allWalls)) return false;
+    probeNew.push_back(addNegativeProbe);
+
+    return true;
+}
+
+bool processProbes(Probe& currentProbe, const vector<Probe>& probes,
+				   double& X, double& Y, const AllZone& allZone, vector<Probe>& probeNew) {
+	// probes may either from source or target
+    for (const Probe& p : probes) { 
+        if (!(p.coord == currentProbe.coord)) {
+            if (!extend2Probes(currentProbe, X, Y, allZone, probeNew)) return false;
+		}
+	}
+    return true;
 }
 
 bool mikami (Probe currentProbe, vector<Probe> probesOnThisPath,
-			 vector<Probe> &sourceProbes, vector<Probe> &targetProbes) {
+			 vector<Probe> &sourceProbes, vector<Probe> &targetProbes,
+			 AllZone const &allZone) {
 
 	// 紀錄從這個點出發所新增的 probes
 	vector<Probe> probeNew;
@@ -44,32 +96,19 @@ bool mikami (Probe currentProbe, vector<Probe> probesOnThisPath,
 	double dy = !(currentProbe.directionX) * DY;
 	double X = dx, Y = dy;
 
-	while(!hitWall()){
+	while(1){
 		// 如果 probe 已經存在的話不要加
 		// 所以要檢查這個 probe 是來自於 source 還是 target
 		// 來自於 source 就檢查 sourceProbes，反之亦然
 		// 不用檢查對面的是因為如果在的話就代表找到 path 了
 		if (currentProbe.isFromSource) {
-			for (Probe const &p : sourceProbes) {
-				if (!(p.coord == currentProbe.coord)) { // p.directionX == currentProbe.directionX
-					probeNew.push_back(currentProbe.extendProbe(X, Y));
-					// maybe also level++
-				}
-			}
-		} else {
-			for (Probe const &p : targetProbes) {
-				if (!(p.coord == currentProbe.coord)) {
-					probeNew.push_back(currentProbe.extendProbe(X, Y));
-					// maybe also level++
-				}
-			}
-		}
-		if (hitWall()) {
-			break;
-		}
-		X += dx;
-		Y += dy;
-	}
+    	    if (!processProbes(currentProbe, sourceProbes, X, Y, allZone, probeNew)) break;
+        } else {
+    	    if (!processProbes(currentProbe, targetProbes, X, Y, allZone, probeNew)) break;
+        }
+        X += dx;
+        Y += dy;
+    }
 
 	// probeNew 的點要存回去 fromSource 或 fromTarget
 	for (Probe const &p : probeNew) {
@@ -94,11 +133,13 @@ bool mikami (Probe currentProbe, vector<Probe> probesOnThisPath,
 	// 用 新的 probes 當作新的點，並遞迴
 	for(Probe const &p : probeNew){
 		probesOnThisPath.push_back(p);
-		mikami (p, probesOnThisPath, sourceProbes, targetProbes);
+		mikami (p, probesOnThisPath, sourceProbes, targetProbes, allZone);
 	}
 }
 
 int main(){ // 或是說 mikami 的前置作業，不一定是在 main，可能是獨立的函式
+	AllZone allZone(4);
+
 	vector<Probe> fromSource;
 	vector<Probe> fromTarget;
 
@@ -117,12 +158,12 @@ int main(){ // 或是說 mikami 的前置作業，不一定是在 main，可能�
 	for(Probe &p : fromSource) { // 只有兩個
 		vector<Probe> probesOnSourcePath;
 		probesOnSourcePath.push_back(p);
-		mikami(p, probesOnSourcePath, fromSource, fromTarget);
+		mikami(p, probesOnSourcePath, fromSource, fromTarget, allZone);
 	}
 
 	for(Probe &p : fromTarget) {
 		vector<Probe> probesOnTargetPath;
 		probesOnTargetPath.push_back(p);
-		mikami(p, probesOnTargetPath, fromSource, fromTarget);
+		mikami(p, probesOnTargetPath, fromSource, fromTarget, allZone);
 	}
 }

@@ -20,6 +20,7 @@ public:
 
   void getBlockVertices(Block const &block);
   void rearrangement();
+  bool inRange(double const &value) const;
 };
 
 #endif // WALL_H_INCLUDED

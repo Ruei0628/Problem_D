@@ -38,3 +38,7 @@ bool compare(const Wall &a, const Wall &b) {
   return a.fixedCoord < b.fixedCoord;
 }
 void Wall::rearrangement() { sort(allWalls.begin(), allWalls.end(), compare); }
+
+bool Wall::inRange(double const &value) const {
+  return rangeCoord[0] <= value && rangeCoord[1] >= value;
+}

@@ -13,16 +13,37 @@
 
 using namespace std;
 
-struct Point {
+class Point {
+public:
     double x, y;
     Point(double x = 0, double y = 0) : x(x), y(y) {}
+
+    bool operator ==(const Point &other) const {
+    	return (x == other.x && y == other.y);
+    }
 };
 
-double findBoundBox(vector<pair<double, double>> const &coords){
-	double x_min = coords[0].first, x_max = coords[0].first,
-		   y_min = coords[0].second, y_max = coords[0].second;
+class Probe {
+public:
+	Probe(Point coord, bool isFromSource, bool directionX)
+		 : coord(coord), isFromSource(isFromSource), directionX(directionX) {}
+
+	Point coord;
+	bool isFromSource; // true if from source, false if from target
+    bool directionX;   // true if extended in X direction, false if in Y direction
+	int level; // not sure if really need...
+
+	Probe extendProbe(double dx, double dy) {
+		Point newPoint(coord.x + dx, coord.y + dy);
+		return Probe(newPoint, isFromSource, !directionX);
+	}
+};
+
+double findBoundBox(vector<Point> const &coords){
+	double x_min = coords[0].x, x_max = coords[0].x,
+		   y_min = coords[0].y, y_max = coords[0].y;
 	for (auto const &c : coords) {
-		double x_this = c.first, y_this = c.second;
+		double x_this = c.x, y_this = c.y;
 		if (x_this > x_max) x_max = x_this;
 		if (x_this < x_min) x_min = x_this;
 		if (y_this > y_max) y_max = y_this;
@@ -68,12 +89,6 @@ pair<double, double> getEndPoint(const RX &thePoint, const AllZone &allZone) {
 
 constexpr double DX = 0.001;
 constexpr double DY = 0.001;
-
-struct Probe {
-    pair<double, double> coord;
-    bool fromSource; // true if from source, false if from target
-    bool extendX;    // true if extended in X direction, false if in Y direction
-};
 
 // 1.如果撞到 nonfeedthroughable block
 // 2. x, y 方向的距離超過 兩倍的cartesion length  (10, 10) (20, 20) x, y 2 framing
@@ -237,7 +252,7 @@ int main() {
 
 	// 計算笛卡爾面積
 	for(Net const &n : Nets.allNets){
-		vector<pair<double, double>> coords;
+		vector<Point> coords;
 		for(RX const &rx : n.RXs){
 			coords.push_back(getEndPoint(rx, allZone));
 		}
