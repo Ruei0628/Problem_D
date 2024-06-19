@@ -11,6 +11,7 @@ AllZone::AllZone(int const &testCase) {
   Regions.ParserAllRegions(testCase);
 
   Walls.getBlockVertices(Blocks);
+  Walls.rearrangement();
 
   for (Block b : Blocks.allBlocks) {
     totZone.push_back(new Block(b));
