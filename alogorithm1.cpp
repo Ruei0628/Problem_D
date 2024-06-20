@@ -221,26 +221,16 @@ int main(){ // 或是說 mikami 的前置作業，不一定是在 main，可能�
 	vector<Probe> fromTarget;
 
 	Point TX(10, 10);
+	fromSource.push_back(Probe(TX, 0, 0));
 	fromSource.push_back(Probe(TX, 1, 0));
-	fromSource.push_back(Probe(TX, 1, 1));
 
 	Point RX_0(20, 20);
 	Point RX_1(30, 30);
 	// 應該要用迴圈實現但隨便啦
 	fromTarget.push_back(Probe(RX_0, 0, 0));
-	fromTarget.push_back(Probe(RX_0, 0, 1));
+	fromTarget.push_back(Probe(RX_0, 1, 0));
 	fromTarget.push_back(Probe(RX_1, 0, 0));
-	fromTarget.push_back(Probe(RX_1, 0, 1));
+	fromTarget.push_back(Probe(RX_1, 1, 0));
 	
-	for(Probe &p : fromSource) { // 只有兩個
-		vector<Probe> probesOnSourcePath;
-		probesOnSourcePath.push_back(p);
-		// mikami(p, probesOnSourcePath, fromSource, fromTarget, allZone);
-	}
-
-	for(Probe &p : fromTarget) {
-		vector<Probe> probesOnTargetPath;
-		probesOnTargetPath.push_back(p);
-		// mikami(p, probesOnTargetPath, fromSource, fromTarget, allZone);
-	}
+	mikami(fromSource, fromTarget, allZone);
 }
