@@ -1,6 +1,5 @@
-#include "AllZone.h"
-#include "Net.h"
-#include "Wall.h"
+#include "Net.h" // include AllZone.h -> Block.h, Region.h -> Zone.h, Wall.h
+#include "Probe.h" // included Wall.h
 
 #include <algorithm>
 #include <cmath>
@@ -13,125 +12,197 @@
 
 using namespace std;
 
-enum class Direction { L, R, U, D };
+// enum class Direction { L, R, U, D };
+constexpr double DX = 0.001;
+constexpr double DY = 0.001;
 
-double findBoundBox(vector<pair<double, double>> const &coords){
-	double x_min = coords[0].first, x_max = coords[0].first,
-		   y_min = coords[0].second, y_max = coords[0].second;
-	for (auto const &c : coords) {
-		double x_this = c.first, y_this = c.second;
-		if (x_this > x_max) x_max = x_this;
-		if (x_this < x_min) x_min = x_this;
-		if (y_this > y_max) y_max = y_this;
-		if (y_this < y_min) y_min = y_this;
-	}
-	return (x_max - x_min) * (y_max - y_min);
+bool compareNetBoundBoxArea(const Net& a, const Net& b) {
+	return a.boundBoxArea < b.boundBoxArea;
 }
 
-bool compareBySecond(const pair<Net, double> &a, const pair<Net, double> &b) {
-  return a.second < b.second;
-}
+bool mikami (TX const &source, RX const &target, AllZone const &allZone) {
+				
+	//step 1: initializaiotn
+	vector<Probe> CSP; // stands for current source probes
+	vector<Probe> OSP; // stands for old source probes
+	vector<Probe> CTP; // stands for current target probes
+	vector<Probe> OTP; // stands for old target probes
 
-pair<double, double> getCoordinates(const string &name, const pair<double, double> &offset, const AllZone &allZone) {
-    double x, y;
-    if(name[0] == 'B') {
-        x = allZone.getBlock(name).coordinate.first;
-        y = allZone.getBlock(name).coordinate.second;
-    }
-    else if(name[0] == 'R') {
-        x = allZone.getRegion(name).vertices[0].first;
-        y = allZone.getRegion(name).vertices[0].second;
-    }
-    double newX = x + offset.first;
-    double newY = y + offset.second;
-    return make_pair(newX, newY);
-}
+	// sourceProbes 跟 targetProbes 還沒寫
+	// 要來寫了
+    CSP.push_back(Probe(source.TX_COORD, source.TX_NAME, 1, 0, nullptr));
+    CSP.push_back(Probe(source.TX_COORD, source.TX_NAME, 0, 0, nullptr));
+    CTP.push_back(Probe(target.RX_COORD, target.RX_NAME, 1, 0, nullptr));
+    CTP.push_back(Probe(target.RX_COORD, target.RX_NAME, 0, 0, nullptr));
 
-// Updated getBeginPoint function
-pair<double, double> getBeginPoint(const TX &thePoint, const AllZone &allZone) {
-    return getCoordinates(thePoint.TX_NAME, thePoint.TX_COORD, allZone);
-}
+    vector<Wall> const walls = allZone.Walls.allWalls;
 
-// Updated getEndPoint function
-pair<double, double> getEndPoint(const RX &thePoint, const AllZone &allZone) {
-    return getCoordinates(thePoint.RX_NAME, thePoint.RX_COORD, allZone);
-}
+	Probe sourceProbeForBacktrace;
+	Probe targetProbeForBacktrace;
 
-bool routing(pair<double, double> beginPoint, string beginZone, 
-			 pair<double, double> endPoint, string endZone,
-			 vector<Wall> const &walls, Direction dir){
-	double y = beginPoint.second;
-	double x = beginPoint.first;
-
-	// go left:
-	for(auto iter = walls.rbegin(); iter != walls.rend(); iter++){
-		Wall const &w = *iter;
-		if (w.name == beginZone) continue;
-		if (!w.isVertical) continue;
-		if (w.fixedCoord < x && w.rangeCoord[0] <= y && w.rangeCoord[1] >= y){
-			// we found the left wall
+	while(1){
+		// step 2: check if intersect
+		bool pathFound = 0;
+		for(Probe const &s : CSP){ 
+			for(Probe const &t : CTP){ 
+				if (s.coord == t.coord){
+					// which means path is found
+					sourceProbeForBacktrace = s;
+					targetProbeForBacktrace = t;
+					pathFound = 1;
+					break;
+				}
+			}
+			for(Probe const &t : OTP){
+				if (s.coord == t.coord){
+					// which means path is found
+					sourceProbeForBacktrace = s;
+					targetProbeForBacktrace = t;
+					pathFound = 1;
+					break;
+				}
+			}
+			if (pathFound) break;
 		}
-	}
-	
-	// go right:
-	for(Wall const &w : walls){
-		if (w.name == beginZone) continue;
-		if (!w.isVertical) continue;
-		if (w.fixedCoord > x && w.rangeCoord[0] <= y && w.rangeCoord[1] >= y){
-			// we found the right wall
+		if (pathFound) break;
+
+		for (Probe const& s : CTP) {
+			for (Probe const& t : OSP) {
+				if (s.coord == t.coord) {
+					// which means path is found
+					sourceProbeForBacktrace = s;
+					targetProbeForBacktrace = t;
+					pathFound = 1;
+					break;
+				}
+			}
+			if (pathFound) break;
 		}
-	}
-	
-	// go up:
-	for(Wall const &w : walls){
-		if (w.name == beginZone) continue;
-		if (w.isVertical) continue;
-		if (w.fixedCoord > y && w.rangeCoord[0] <= x && w.rangeCoord[1] >= x){
-			// we found the up wall
+		if (pathFound) break;
+
+		// step 3: copy CSP to OSP; copy CTP to OTP
+		// current 的點要存回去 old
+		OSP.insert(OSP.end(), CSP.begin(), CSP.end());
+		OTP.insert(OTP.end(), CTP.begin(), CTP.end());
+
+		// current 的資料應該不能刪掉，因為還要 extend
+		// 只是在這之後(、被清除之前)調用 current probes 應該只能 const &
+
+		// 4. 生成與 current probes 垂直的 extendedProbes，並先把他們暫存在一個 vector 裡面
+		// 要分成 from source 跟 from target
+		vector<Probe> ESP; // stands for extended source probes
+		vector<Probe> ETP; // stands for extended target probes
+		// 這些生成出來的 probes 的 level 要 +1
+
+		for (Probe const &p : CSP) { // 來自 source
+			double dx = p.directionX * DX;
+			double dy = !(p.directionX) * DY;
+			double X = dx, Y = dy;
+			int levelCSP = p.level;
+			
+			// 往兩個方向生成新的 probe
+			// 正方向
+			while (1) {
+				Probe positiveProbe = p.extendedProbe(X, Y, levelCSP + 1);
+				// 如果這個 probe 會撞到牆，直接結束這個方向的 extend
+				if (positiveProbe.hitWall(walls)) {
+					cout << "EPSP hit wall!" <<endl;
+					break;
+				}
+				X += dx;
+				Y += dy;
+				// 如果這個 probe 已經存在 OSP 裡面，跳過這個 probe (但還是會繼續執行 extend)
+				if (positiveProbe.alreadyExist(OSP)) continue; // may be time-consuming
+				ESP.push_back(positiveProbe);
+			}
+			// 負方向
+			while (1) {
+				Probe negativeProbe = p.extendedProbe(-X, -Y, levelCSP + 1);
+				// 如果這個 probe 會撞到牆，直接結束這個方向的 extend
+				if (negativeProbe.hitWall(walls)) {
+					cout << "ENSP hit wall!" <<endl;
+					break;
+				}
+				X += dx;
+				Y += dy;
+				// 如果這個 probe 已經存在 OSP 裡面，跳過這個 probe (但還是會繼續執行 extend)
+				if (negativeProbe.alreadyExist(OSP)) continue; // may be time-consuming
+				ESP.push_back(negativeProbe);
+			}
 		}
+		
+		for (Probe const &p : CTP) { // 來自 target
+			double dx = p.directionX * DX;
+			double dy = !(p.directionX) * DY;
+			double X = dx, Y = dy;
+			int levelCTP = p.level;
+			
+			// 往兩個方向生成新的 probe
+			// 正方向
+			while (1) {
+				Probe positiveProbe = p.extendedProbe(X, Y, levelCTP + 1);
+				// 如果這個 probe 會撞到牆，直接結束這個方向的 extend
+				if (positiveProbe.hitWall(walls)) {
+					cout << "EPTP hit wall!" <<endl;
+					break;
+				}
+				X += dx;
+				Y += dy;
+				// 如果這個 probe 已經存在 OTP 裡面，跳過這個 probe (但還是會繼續執行 extend)
+				if (positiveProbe.alreadyExist(OTP)) continue; // may be time-consuming
+				ETP.push_back(positiveProbe);
+			}
+			// 負方向
+			while (1) {
+				Probe negativeProbe = p.extendedProbe(-X, -Y, levelCTP + 1);
+				// 如果這個 probe 會撞到牆，直接結束這個方向的 extend
+				if (negativeProbe.hitWall(walls)) {
+					cout << "ENTP hit wall!" <<endl;
+					break;
+				}
+				X += dx;
+				Y += dy;
+				// 如果這個 probe 已經存在 OTP 裡面，跳過這個 probe (但還是會繼續執行 extend)
+				if (negativeProbe.alreadyExist(OTP)) continue; // may be time-consuming
+				ETP.push_back(negativeProbe);
+			}
+		}
+
+		// 因此我們現在獲得了全部的下一個 level 的 probes (在 extendedProbes 裡)
+		CSP.swap(ESP);
+		ESP.clear();
+		CTP.swap(ETP);
+		ETP.clear();
 	}
 
-	// go down:
-	for(auto iter = walls.rbegin(); iter != walls.rend(); iter++){
-		Wall const &w = *iter;
-		if (w.name == beginZone) continue;
-		if (w.isVertical) continue;
-		if (w.fixedCoord < y && w.rangeCoord[0] <= x && w.rangeCoord[1] >= x){
-			// we found the down wall
-		}
-	}
+	// step 5. backtrace
+	// backtrace 的實作想法:
+	// 反正我剛剛問 chatGPT 寫了一個指標的寫法，而且看起來也不難
+	// 那就是利用指標的方式去一直找 現在的 Probe 的 parent
+	// (也就是上一個 level extend 出這個 probe 的 probe)
+	// 就可以 trace 出整條線，應該啦
 }
 
 int main()
 {
 	int testCase = 4;
 	AllZone allZone(testCase);
-	allZone.getBlock("BLOCK_1").showBlockInfo();
-	allZone.getRegion("REGION_64").showRegionInfo();
 
 	Net Nets;
-	Nets.ParserAllNets(testCase);
+	Nets.ParserAllNets(testCase, allZone);
+	// 把 net 用 bound box 大小重新排序
+    sort(Nets.allNets.begin(), Nets.allNets.end(), compareNetBoundBoxArea);
 
 	vector<Wall> walls = allZone.Walls.allWalls;
 
-	vector<pair<Net, double>> netMinBox;
-
-	// 計算笛卡爾面積
-	for(Net const &n : Nets.allNets){
-		vector<pair<double, double>> coords;
-		for(RX const &rx : n.RXs){
-			coords.push_back(getEndPoint(rx, allZone));
-		}
-		coords.push_back(getBeginPoint(n.TX, allZone));
-		double boundBox = findBoundBox(coords);
-		netMinBox.push_back(make_pair(n, boundBox));
-	}
-	// 把 net 用 minLength 重新排序
-    sort(netMinBox.begin(), netMinBox.end(), compareBySecond);
-
     // 轉換成絕對座標
-	
+	for (Net const &n : Nets.allNets){
+		TX const &source = n.TX;
+		for (RX const &target : n.RXs){
+			mikami(source, target, allZone);
+		}
+	}
 }
 
-// cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ main.cpp AllZone.cpp Block.cpp Net.cpp Region.cpp Wall.cpp -o main} ; if ($?) { .\main }
+// cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ main.cpp AllZone.cpp Block.cpp Net.cpp Probe.cpp Region.cpp Wall.cpp -o main} ; if ($?) { .\main }
 // cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ main.cpp Net.cpp -o main} ; if ($?) { .\main }

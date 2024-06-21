@@ -9,18 +9,18 @@ using namespace std;
 
 class Wall : public Block{
 public:
-  Wall(){}
-  Wall(bool, double, double[2]);
+	Wall(){}
+	Wall(bool, double, double[2]);
 
-  bool isVertical; // 0: horizontal, 1: vertical
-  double fixedCoord;
-  double rangeCoord[2];
+	bool isVertical; // 0: horizontal, 1: vertical
+	double fixedCoord;
+	double rangeCoord[2];
 
-  vector<Wall> allWalls;
+	vector<Wall> allWalls;
 
-  void getBlockVertices(Block const &block);
-  void rearrangement();
-  bool inRange(double const &value) const;
+	void getBlockVertices(Block const &block);
+	void rearrangement();
+	bool inRange(double const &value) const;
 };
 
 #endif // WALL_H_INCLUDED

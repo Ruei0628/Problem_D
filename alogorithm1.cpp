@@ -1,95 +1,20 @@
 #include <vector>
 #include "AllZone.h"
+#include "Probe.h"
 
 using namespace std;
 
 constexpr double DX = 0.001;
 constexpr double DY = 0.001;
 
-class Point {
-public:
-    double x, y;
-    Point(double x = 0, double y = 0) : x(x), y(y) {}
-
-    bool operator ==(const Point &other) const {
-    	return (x == other.x && y == other.y);
-    }
-};
-
-class Probe {
-public:
-	Probe() {}
-	Probe(Point coord, bool directionX, int level, Probe *parent = nullptr)
-		 : coord(coord), directionX(directionX), level(level), parentProbe(parent) {}
-
-	Point coord;
-	bool isFromSource; // true if from source, false if from target
-	// is "isFromSource" important now?
-    bool directionX;   // true if extended in X direction, false if in Y direction
-	int level; // not sure if really need...
-	// not sure if 有可以寫指標的寫法的話還需不需要 level
-	Probe* parentProbe;
-	string zoneName;
-
-	Probe extendedProbe(double dx, double dy, int lv) const {
-		Point newPoint(coord.x + dx, coord.y + dy);
-		return Probe(newPoint, !directionX, lv, const_cast<Probe*>(this));
-	}
-
-	bool hitWall(vector<Wall> const &walls) const {
-		// 兩種情況要停下來
-		// 1. 碰到不是自己來源的 non-feedthroughable block
-		// (自己來源的意思是，如果是 source 的話就是 RX 的那個 block 或 region)
-		// (如果是 target 的話就是 TX 的那個 block 或 region)
-		for(Wall const &w : walls) {
-			// 如果是起點而且碰到起點 zone 的牆壁則忽略
-			if (zoneName == w.name) continue;
-			// 走橫向的 probes 碰到垂直的牆壁
-			if (directionX && w.isVertical){
-				// 好像就不用判斷說是往右還是往左
-				if(coord.x == w.fixedCoord && w.inRange(coord.y)){
-					return 1;
-				}
-			}
-			// 走縱向的 probes 碰到水平的牆壁
-			if (!directionX && !w.isVertical){
-				// 好像就不用判斷說是往上還是往下
-				if(coord.x == w.fixedCoord && w.inRange(coord.y)){
-					return 1;
-				}
-			}
-		}
-
-		// 2. 碰到 chip 邊界
-		const double boundaryL = 0.0;
-		const double boundaryR = 10000000.0; // assumed
-		const double boundaryD = 0.0;
-		const double boundaryU = 10000000.0; // assumed
-		if (directionX && (coord.x > boundaryR || coord.x < boundaryL)){
-			return 1;
-		}
-		if (!directionX && (coord.y > boundaryU || coord.y < boundaryD)){
-			return 1;
-		}
-		return 0;
-	}
-
-	bool alreadyExist (vector<Probe> const &oldProbes){
-		for (Probe const &p : oldProbes){
-			if (coord == p.coord) return 1;
-		}
-		return 0;
-	}
-};
-
 bool mikami (vector<Probe> sourceProbes, vector<Probe> targetProbes,
 			 AllZone const &allZone) {
 				
 	//step 1: initializaiotn
-	vector<Probe> CSP;
-	vector<Probe> OSP;
-	vector<Probe> CTP;
-	vector<Probe> OTP;
+	vector<Probe> CSP; // stands for current source probes
+	vector<Probe> OSP; // stands for old source probes
+	vector<Probe> CTP; // stands for current target probes
+	vector<Probe> OTP; // stands for old target probes
 
 	// sourceProbes 跟 targetProbes 還沒寫
 
@@ -128,7 +53,9 @@ bool mikami (vector<Probe> sourceProbes, vector<Probe> targetProbes,
 		// 只是在這之後(、被清除之前)調用 current probes 應該只能 const &
 
 		// 4. 生成與 current probes 垂直的 extendedProbes，並先把他們暫存在一個 vector 裡面
-		vector<Probe> extendedProbes;
+		// 要分成 from source 跟 from target
+		vector<Probe> ESP; // stands for extended source probes
+		vector<Probe> ETP; // stands for extended target probes
 		// 這些生成出來的 probes 的 level 要 +1
 
 		for (Probe const &p : CSP) { // 來自 source
@@ -149,7 +76,7 @@ bool mikami (vector<Probe> sourceProbes, vector<Probe> targetProbes,
 				Y += dy;
 				// 如果這個 probe 已經存在 OSP 裡面，跳過這個 probe (但還是會繼續執行 extend)
 				if (positiveProbe.alreadyExist(OSP)) continue; // may be time-consuming
-				extendedProbes.push_back(positiveProbe);
+				ESP.push_back(positiveProbe);
 			}
 			// 負方向
 			while (1) {
@@ -162,7 +89,7 @@ bool mikami (vector<Probe> sourceProbes, vector<Probe> targetProbes,
 				Y += dy;
 				// 如果這個 probe 已經存在 OSP 裡面，跳過這個 probe (但還是會繼續執行 extend)
 				if (negativeProbe.alreadyExist(OSP)) continue; // may be time-consuming
-				extendedProbes.push_back(negativeProbe);
+				ESP.push_back(negativeProbe);
 			}
 		}
 		
@@ -184,7 +111,7 @@ bool mikami (vector<Probe> sourceProbes, vector<Probe> targetProbes,
 				Y += dy;
 				// 如果這個 probe 已經存在 OSP 裡面，跳過這個 probe (但還是會繼續執行 extend)
 				if (positiveProbe.alreadyExist(OTP)) continue; // may be time-consuming
-				extendedProbes.push_back(positiveProbe);
+				ETP.push_back(positiveProbe);
 			}
 			// 負方向
 			while (1) {
@@ -197,13 +124,15 @@ bool mikami (vector<Probe> sourceProbes, vector<Probe> targetProbes,
 				Y += dy;
 				// 如果這個 probe 已經存在 OSP 裡面，跳過這個 probe (但還是會繼續執行 extend)
 				if (negativeProbe.alreadyExist(OTP)) continue; // may be time-consuming
-				extendedProbes.push_back(negativeProbe);
+				ETP.push_back(negativeProbe);
 			}
 		}
 
 		// 因此我們現在獲得了全部的下一個 level 的 probes (在 extendedProbes 裡)
-		CSP.swap(extendedProbes);
-		extendedProbes.clear();
+		CSP.swap(ESP);
+		ESP.clear();
+		CTP.swap(ETP);
+		ETP.clear();
 	}
 
 	// step 5. backtrace
