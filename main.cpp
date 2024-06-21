@@ -21,7 +21,7 @@ bool compareNetBoundBoxArea(const Net& a, const Net& b) {
 }
 
 bool mikami (TX const &source, RX const &target, AllZone const &allZone) {
-				
+	cout << "Start mikami!" << endl;
 	//step 1: initializaiotn
 	vector<Probe> CSP; // stands for current source probes
 	vector<Probe> OSP; // stands for old source probes
@@ -37,8 +37,8 @@ bool mikami (TX const &source, RX const &target, AllZone const &allZone) {
 
     vector<Wall> const walls = allZone.Walls.allWalls;
 
-	Probe sourceProbeForBacktrace;
-	Probe targetProbeForBacktrace;
+	Probe* sourceProbeForBacktrace = nullptr;
+	Probe* targetProbeForBacktrace = nullptr;
 
 	while(1){
 		// step 2: check if intersect
@@ -47,8 +47,8 @@ bool mikami (TX const &source, RX const &target, AllZone const &allZone) {
 			for(Probe const &t : CTP){ 
 				if (s.coord == t.coord){
 					// which means path is found
-					sourceProbeForBacktrace = s;
-					targetProbeForBacktrace = t;
+					sourceProbeForBacktrace = new Probe(s);
+					targetProbeForBacktrace = new Probe(t);
 					pathFound = 1;
 					break;
 				}
@@ -56,8 +56,8 @@ bool mikami (TX const &source, RX const &target, AllZone const &allZone) {
 			for(Probe const &t : OTP){
 				if (s.coord == t.coord){
 					// which means path is found
-					sourceProbeForBacktrace = s;
-					targetProbeForBacktrace = t;
+					sourceProbeForBacktrace = new Probe(s);
+					targetProbeForBacktrace = new Probe(t);
 					pathFound = 1;
 					break;
 				}
@@ -70,8 +70,8 @@ bool mikami (TX const &source, RX const &target, AllZone const &allZone) {
 			for (Probe const& t : OSP) {
 				if (s.coord == t.coord) {
 					// which means path is found
-					sourceProbeForBacktrace = s;
-					targetProbeForBacktrace = t;
+					sourceProbeForBacktrace = new Probe(s);
+					targetProbeForBacktrace = new Probe(t);
 					pathFound = 1;
 					break;
 				}
@@ -106,7 +106,7 @@ bool mikami (TX const &source, RX const &target, AllZone const &allZone) {
 				Probe positiveProbe = p.extendedProbe(X, Y, levelCSP + 1);
 				// 如果這個 probe 會撞到牆，直接結束這個方向的 extend
 				if (positiveProbe.hitWall(walls)) {
-					cout << "EPSP hit wall!" <<endl;
+					cout << "EPSP hit wall!" << endl;
 					break;
 				}
 				X += dx;
@@ -120,7 +120,7 @@ bool mikami (TX const &source, RX const &target, AllZone const &allZone) {
 				Probe negativeProbe = p.extendedProbe(-X, -Y, levelCSP + 1);
 				// 如果這個 probe 會撞到牆，直接結束這個方向的 extend
 				if (negativeProbe.hitWall(walls)) {
-					cout << "ENSP hit wall!" <<endl;
+					cout << "ENSP hit wall!" << endl;
 					break;
 				}
 				X += dx;
@@ -143,7 +143,7 @@ bool mikami (TX const &source, RX const &target, AllZone const &allZone) {
 				Probe positiveProbe = p.extendedProbe(X, Y, levelCTP + 1);
 				// 如果這個 probe 會撞到牆，直接結束這個方向的 extend
 				if (positiveProbe.hitWall(walls)) {
-					cout << "EPTP hit wall!" <<endl;
+					cout << "EPTP hit wall!" << endl;
 					break;
 				}
 				X += dx;
@@ -157,7 +157,7 @@ bool mikami (TX const &source, RX const &target, AllZone const &allZone) {
 				Probe negativeProbe = p.extendedProbe(-X, -Y, levelCTP + 1);
 				// 如果這個 probe 會撞到牆，直接結束這個方向的 extend
 				if (negativeProbe.hitWall(walls)) {
-					cout << "ENTP hit wall!" <<endl;
+					cout << "ENTP hit wall!" << endl;
 					break;
 				}
 				X += dx;
@@ -175,12 +175,35 @@ bool mikami (TX const &source, RX const &target, AllZone const &allZone) {
 		ETP.clear();
 	}
 
-	// step 5. backtrace
-	// backtrace 的實作想法:
-	// 反正我剛剛問 chatGPT 寫了一個指標的寫法，而且看起來也不難
-	// 那就是利用指標的方式去一直找 現在的 Probe 的 parent
-	// (也就是上一個 level extend 出這個 probe 的 probe)
-	// 就可以 trace 出整條線，應該啦
+	// Step 5: Backtrace
+    vector<Probe> path;
+
+    // Backtrace from source probe
+    Probe* probe = sourceProbeForBacktrace;
+    while (probe) {
+        path.push_back(*probe);
+        probe = probe->parentProbe;
+    }
+
+    reverse(path.begin(), path.end()); // Reverse to get path from source to target
+
+    // Backtrace from target probe
+    probe = targetProbeForBacktrace;
+    while (probe) {
+        path.push_back(*probe);
+        probe = probe->parentProbe;
+    }
+
+    // Clean up dynamically allocated memory
+    delete sourceProbeForBacktrace;
+    delete targetProbeForBacktrace;
+
+    // Print the path
+    for (Probe const &p : path) {
+		cout << "Probe at (" << p.coord.x << ", " << p.coord.y << ")" << endl;
+	}
+
+	return 0;
 }
 
 int main()
@@ -189,16 +212,18 @@ int main()
 	AllZone allZone(testCase);
 
 	Net Nets;
-	Nets.ParserAllNets(testCase, allZone);
+	Nets.readFile(testCase);
 	// 把 net 用 bound box 大小重新排序
     sort(Nets.allNets.begin(), Nets.allNets.end(), compareNetBoundBoxArea);
 
-	vector<Wall> walls = allZone.Walls.allWalls;
+    // Nets.allNets[3].showNetInfo();
 
-    // 轉換成絕對座標
+    vector<Wall> walls = allZone.Walls.allWalls;
+
 	for (Net const &n : Nets.allNets){
-		TX const &source = n.TX;
-		for (RX const &target : n.RXs){
+		TX const &source = n.absoluteTX(allZone);
+		for (RX const &rx : n.RXs){
+			RX const &target = n.absoluteRX(rx, allZone);
 			mikami(source, target, allZone);
 		}
 	}

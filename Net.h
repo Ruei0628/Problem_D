@@ -21,8 +21,6 @@ struct TX {
 struct RX {
 	string RX_NAME;
 	Point RX_COORD;
-
-	RX(const string &name, const Point &coord) : RX_NAME(name), RX_COORD(coord) {}
 };
 
 struct MUST_THROUGH {
@@ -53,7 +51,11 @@ public:
 
 	double boundBoxArea;
 	void getBoundBoxArea(AllZone const &allZone);
-	void ParserAllNets(int const &testCase, AllZone const &allZone);
+
+	struct TX absoluteTX(AllZone const &allZone) const;
+	struct RX absoluteRX(RX const &rx, AllZone const &allZone) const;
+
+	void readFile(int const &testCase);
 	Net getNet(int const &ID) const;
 	void showNetInfo();
 };
