@@ -31,7 +31,7 @@ public:
 	Probe* parentProbe;
 	string zoneName;
 
-	Probe extendedProbe(double dx, double dy, int lv, Probe *Parent = nullptr) const{
+	Probe extendedProbe(double dx, double dy, int lv) const {
 		Point newPoint(coord.x + dx, coord.y + dy);
 		return Probe(newPoint, !directionX, lv, const_cast<Probe*>(this));
 	}
