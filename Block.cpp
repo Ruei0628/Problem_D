@@ -17,38 +17,38 @@ Block::Block(Block const &b) {
 }
 
 void Block::expandVertices() {
-  pair<double, double> tempVertice(vertices[0].first, vertices[1].second);
+  Point tempVertice(vertices[0].x, vertices[1].y);
   vertices.insert(vertices.begin() + 1, tempVertice);
-  tempVertice = make_pair(vertices[2].first, vertices[0].second);
+  tempVertice = Point(vertices[2].x, vertices[0].y);
   vertices.push_back(tempVertice);
 }
 
 void Block::facingAndFlip(string facingFlip,
-                          vector<pair<double, double>> &vertices) {
+                          vector<Point> &vertices) {
   char flip = facingFlip[0];
   char facing = facingFlip[1];
 
-  vector<pair<double, double>> tempVertices;
+  vector<Point> tempVertices;
   tempVertices = vertices;
   vertices.clear();
 
   // facing
-  for (pair<double, double> &vertex : tempVertices) {
+  for (Point &vertex : tempVertices) {
     switch (facing) {
     case 'N': {
-      vertices.push_back(make_pair(vertex.first, vertex.second));
+      vertices.push_back(Point(vertex.x, vertex.y));
       break;
     }
     case 'W': {
-      vertices.push_back(make_pair(-vertex.second, vertex.first));
+      vertices.push_back(Point(-vertex.y, vertex.x));
       break;
     }
     case 'S': {
-      vertices.push_back(make_pair(-vertex.first, -vertex.second));
+      vertices.push_back(Point(-vertex.x, -vertex.y));
       break;
     }
     case 'E': {
-      vertices.push_back(make_pair(vertex.second, -vertex.first));
+      vertices.push_back(Point(vertex.y, -vertex.x));
       break;
     }
     }
@@ -56,59 +56,59 @@ void Block::facingAndFlip(string facingFlip,
 
   // flip
   if (flip == 'F') {
-    for (pair<double, double> &vertex : vertices) {
-      vertex.first = -vertex.first;
+    for (Point &vertex : vertices) {
+      vertex.x = -vertex.x;
     }
   }
 
   // shift to nonnegative
   double minX = 1000;
   double minY = 1000;
-  for (pair<double, double> &vertex : vertices) {
-    if (vertex.first < minX)
-      minX = vertex.first;
-    if (vertex.second < minY)
-      minY = vertex.second;
+  for (Point &vertex : vertices) {
+    if (vertex.x < minX)
+      minX = vertex.x;
+    if (vertex.y < minY)
+      minY = vertex.y;
   }
-  for (pair<double, double> &vertex : vertices) {
-    vertex.first -= minX;
-    vertex.second -= minY;
+  for (Point &vertex : vertices) {
+    vertex.x -= minX;
+    vertex.y -= minY;
   }
 }
 
-void Block::shiftCoordinate(pair<double, double> shift,
-                            vector<pair<double, double>> &vertices) {
-  for (pair<double, double> &vertex : vertices) {
-    vertex.first += shift.first;
-    vertex.second += shift.second;
+void Block::shiftCoordinate(Point shift,
+                            vector<Point> &vertices) {
+  for (Point &vertex : vertices) {
+    vertex.x += shift.x;
+    vertex.y += shift.y;
   }
 }
 
 void Block::showBlockInfo() {
   cout << "blockName: '" << name << "'" << endl
        << "blkID: '" << blkID << "'" << endl
-       << "coordinate: (" << coordinate.first << ", " << coordinate.second
+       << "coordinate: (" << coordinate.x << ", " << coordinate.y
        << ") " << endl
        << "facingFlip: '" << facingFlip << "'" << endl;
   cout << "vertices: " << endl;
   for (auto v : vertices) {
-    cout << "(" << v.first << ", " << v.second << ")\n";
+    cout << "(" << v.x << ", " << v.y << ")\n";
   }
   cout << "through_block_net_num: " << through_block_net_num << endl
        << "through_block_edge_net_num: ";
   if (through_block_edge_net_num.net_num != -1) {
-    cout << "(" << through_block_edge_net_num.blockEdge[0].first << ", "
-         << through_block_edge_net_num.blockEdge[0].second << ") ("
-         << through_block_edge_net_num.blockEdge[1].first << ", "
-         << through_block_edge_net_num.blockEdge[2].second << ") "
+    cout << "(" << through_block_edge_net_num.blockEdge[0].x << ", "
+         << through_block_edge_net_num.blockEdge[0].y << ") ("
+         << through_block_edge_net_num.blockEdge[1].x << ", "
+         << through_block_edge_net_num.blockEdge[2].y << ") "
          << through_block_edge_net_num.net_num;
   }
   cout << endl;
   cout << "block_port_region: ";
   if (block_port_region.size()) {
-    cout << "(" << block_port_region[0].first << ", "
-         << block_port_region[0].second << ") (" << block_port_region[1].first
-         << ", " << block_port_region[1].second << ")";
+    cout << "(" << block_port_region[0].x << ", "
+         << block_port_region[0].y << ") (" << block_port_region[1].x
+         << ", " << block_port_region[1].y << ")";
   }
   cout << endl
        << "is_feedthroughable: " << is_feedthroughable << endl
@@ -153,15 +153,15 @@ void Block::ParserAllBlocks(int const &testCase) {
 				// through_block_edge_net_num
 				const Value &TBENN = block["through_block_edge_net_num"];
 				if (TBENN.Size()) {
-					tempBlock.through_block_edge_net_num.blockEdge[0] = make_pair(TBENN[0][0].GetDouble(), TBENN[0][1].GetDouble());
-					tempBlock.through_block_edge_net_num.blockEdge[1] = make_pair(TBENN[1][0].GetDouble(), TBENN[1][1].GetDouble());
+					tempBlock.through_block_edge_net_num.blockEdge[0] = Point(TBENN[0][0].GetDouble(), TBENN[0][1].GetDouble());
+					tempBlock.through_block_edge_net_num.blockEdge[1] = Point(TBENN[1][0].GetDouble(), TBENN[1][1].GetDouble());
 					tempBlock.through_block_edge_net_num.net_num = TBENN[2].GetInt();
 				}
 				// block_port_region
 				const Value &BPR = block["block_port_region"];
 				if (BPR.Size()) {
-					tempBlock.block_port_region.push_back(make_pair(BPR[0][0].GetDouble(), BPR[0][1].GetDouble()));
-            		tempBlock.block_port_region.push_back(make_pair(BPR[1][0].GetDouble(), BPR[1][1].GetDouble()));
+					tempBlock.block_port_region.push_back(Point(BPR[0][0].GetDouble(), BPR[0][1].GetDouble()));
+            		tempBlock.block_port_region.push_back(Point(BPR[1][0].GetDouble(), BPR[1][1].GetDouble()));
         		}
         	}
         	file_cfg.close();
@@ -187,7 +187,7 @@ void Block::ParserAllBlocks(int const &testCase) {
         		smatch match = *iter;
         		double x = stod(match[1].str());
         		double y = stod(match[2].str());
-        		tempBlock.vertices.push_back(make_pair(x, y));
+        		tempBlock.vertices.push_back(Point(x, y));
         		++iter;
         	}
         	if (tempBlock.vertices.size() == 2)
@@ -196,7 +196,7 @@ void Block::ParserAllBlocks(int const &testCase) {
 
     	// getCoordinate
     	if (std::regex_search(line, m, getCoordinate) && m.size() == 3) {
-    		tempBlock.coordinate = make_pair(stod(m[1]), stod(m[2]));
+    		tempBlock.coordinate = Point(stod(m[1]), stod(m[2]));
     	}
 
     	// getFacingFlip

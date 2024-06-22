@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -20,7 +21,7 @@ bool compareNetBoundBoxArea(const Net& a, const Net& b) {
 	return a.boundBoxArea < b.boundBoxArea;
 }
 
-bool mikami (TX const &source, RX const &target, AllZone const &allZone) {
+void mikami (TX const &source, RX const &target, AllZone const &allZone) {
 	cout << "Start mikami!" << endl;
 	//step 1: initializaiotn
 	vector<Probe> CSP; // stands for current source probes
@@ -28,8 +29,7 @@ bool mikami (TX const &source, RX const &target, AllZone const &allZone) {
 	vector<Probe> CTP; // stands for current target probes
 	vector<Probe> OTP; // stands for old target probes
 
-	// sourceProbes 跟 targetProbes 還沒寫
-	// 要來寫了
+	// 把 TX 跟 RX 改成 probes
     CSP.push_back(Probe(source.TX_COORD, source.TX_NAME, 1, 0, nullptr));
     CSP.push_back(Probe(source.TX_COORD, source.TX_NAME, 0, 0, nullptr));
     CTP.push_back(Probe(target.RX_COORD, target.RX_NAME, 1, 0, nullptr));
@@ -39,6 +39,8 @@ bool mikami (TX const &source, RX const &target, AllZone const &allZone) {
 
 	Probe* sourceProbeForBacktrace = nullptr;
 	Probe* targetProbeForBacktrace = nullptr;
+
+	cout << "step 1 complete\n";
 
 	while(1){
 		// step 2: check if intersect
@@ -80,6 +82,8 @@ bool mikami (TX const &source, RX const &target, AllZone const &allZone) {
 		}
 		if (pathFound) break;
 
+		cout << "step 2 complete\n";
+
 		// step 3: copy CSP to OSP; copy CTP to OTP
 		// current 的點要存回去 old
 		OSP.insert(OSP.end(), CSP.begin(), CSP.end());
@@ -87,6 +91,8 @@ bool mikami (TX const &source, RX const &target, AllZone const &allZone) {
 
 		// current 的資料應該不能刪掉，因為還要 extend
 		// 只是在這之後(、被清除之前)調用 current probes 應該只能 const &
+
+		cout << "step 3 complete\n";
 
 		// 4. 生成與 current probes 垂直的 extendedProbes，並先把他們暫存在一個 vector 裡面
 		// 要分成 from source 跟 from target
@@ -115,6 +121,7 @@ bool mikami (TX const &source, RX const &target, AllZone const &allZone) {
 				if (positiveProbe.alreadyExist(OSP)) continue; // may be time-consuming
 				ESP.push_back(positiveProbe);
 			}
+			cout << "EPSP done!" << endl;
 			// 負方向
 			while (1) {
 				Probe negativeProbe = p.extendedProbe(-X, -Y, levelCSP + 1);
@@ -173,6 +180,8 @@ bool mikami (TX const &source, RX const &target, AllZone const &allZone) {
 		ESP.clear();
 		CTP.swap(ETP);
 		ETP.clear();
+
+		cout << "step 4 complete\n";
 	}
 
 	// Step 5: Backtrace
@@ -202,31 +211,42 @@ bool mikami (TX const &source, RX const &target, AllZone const &allZone) {
     for (Probe const &p : path) {
 		cout << "Probe at (" << p.coord.x << ", " << p.coord.y << ")" << endl;
 	}
-
-	return 0;
 }
 
 int main()
 {
-	int testCase = 4;
-	AllZone allZone(testCase);
+  cout << fixed << setprecision(3);
+  int testCase = 4;
+  AllZone allZone(testCase);
 
-	Net Nets;
-	Nets.readFile(testCase);
-	// 把 net 用 bound box 大小重新排序
-    sort(Nets.allNets.begin(), Nets.allNets.end(), compareNetBoundBoxArea);
+  Net Nets;
+  Nets.readFile(testCase);
+  // 把 net 用 bound box 大小重新排序
+  // sort(Nets.allNets.begin(), Nets.allNets.end(), compareNetBoundBoxArea);
+  // Nets.allNets[3].showNetInfo();
 
-    // Nets.allNets[3].showNetInfo();
-
-    vector<Wall> walls = allZone.Walls.allWalls;
-
-	for (Net const &n : Nets.allNets){
-		TX const &source = n.absoluteTX(allZone);
-		for (RX const &rx : n.RXs){
-			RX const &target = n.absoluteRX(rx, allZone);
-			mikami(source, target, allZone);
-		}
-	}
+  vector<Wall> walls = allZone.Walls.allWalls;
+  /*
+  for (Wall const &w : walls) {
+          if(w.isVertical){
+                  cout << "(" << w.fixedCoord << ", ["
+                  << w.rangeCoord[0] << ", " << w.rangeCoord[1] << "])\t"
+                  << w.name << endl;
+          } else {
+                  cout << "([" << w.rangeCoord[0] << ", " << w.rangeCoord[1] <<
+  "], "
+                  << w.fixedCoord << ")\t" << w.name << endl;
+          }
+  }
+  */
+  if (1)
+    for (Net const &n : Nets.allNets) {
+      TX const &source = n.absoluteTX(allZone);
+      for (RX const &rx : n.RXs) {
+        RX const &target = n.absoluteRX(rx, allZone);
+        mikami(source, target, allZone);
+      }
+    }
 }
 
 // cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ main.cpp AllZone.cpp Block.cpp Net.cpp Probe.cpp Region.cpp Wall.cpp -o main} ; if ($?) { .\main }

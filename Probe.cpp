@@ -1,4 +1,5 @@
 #include "Probe.h"
+#include <cmath>
 
 Probe::Probe(Point coord, string zoneName, bool directionX, int level, Probe *parent = nullptr){
 	this->coord = coord;
@@ -10,6 +11,9 @@ Probe::Probe(Point coord, string zoneName, bool directionX, int level, Probe *pa
 
 Probe Probe::extendedProbe(double dx, double dy, int lv) const {
 	Point newPoint(coord.x + dx, coord.y + dy);
+	if (fmod(coord.x, 1.0) == 0.0){
+		cout << newPoint.x << ", " << newPoint.y << ")\n";
+	}
 	return Probe(newPoint, zoneName, !directionX, lv, const_cast<Probe*>(this));
 }
 bool Probe::hitWall(vector<Wall> const &walls) const {
@@ -37,13 +41,13 @@ bool Probe::hitWall(vector<Wall> const &walls) const {
 	}
 	// 2. 碰到 chip 邊界
 	const double boundaryL = 0.0;
-	const double boundaryR = 10000000.0; // assumed
+	const double boundaryR = 12440136.0;
 	const double boundaryD = 0.0;
-	const double boundaryU = 10000000.0; // assumed
-	if (directionX && (coord.x > boundaryR || coord.x < boundaryL)){
+	const double boundaryU = 10368720.0;
+	if (directionX && (coord.x >= boundaryR || coord.x <= boundaryL)){
 		return 1;
 	}
-	if (!directionX && (coord.y > boundaryU || coord.y < boundaryD)){
+	if (!directionX && (coord.y >= boundaryU || coord.y <= boundaryD)){
 		return 1;
 	}
 	return 0;

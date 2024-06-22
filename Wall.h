@@ -10,7 +10,7 @@ using namespace std;
 class Wall : public Block{
 public:
 	Wall(){}
-	Wall(bool, double, double[2]);
+	Wall(bool, double, double[2], string);
 
 	bool isVertical; // 0: horizontal, 1: vertical
 	double fixedCoord;
@@ -23,4 +23,4 @@ public:
 	bool inRange(double const &value) const;
 };
 
-#endif // WALL_H_INCLUDED
+#endif // WALL_H_INCLUDED3

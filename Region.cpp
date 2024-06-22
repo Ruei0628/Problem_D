@@ -13,16 +13,16 @@ void Region::expandVertices() {
   // (x0 y1) [x1 y1]
   // [x0 y0] (x1 y0)
   // clockwise
-  pair<double, double> tempVertice(vertices[0].first, vertices[1].second);
+  Point tempVertice(vertices[0].x, vertices[1].y);
   vertices.insert(vertices.begin() + 1, tempVertice);
-  tempVertice = make_pair(vertices[2].first, vertices[0].second);
+  tempVertice = Point(vertices[2].x, vertices[0].y);
   vertices.push_back(tempVertice);
 }
 
 void Region::showRegionInfo() {
   cout << name << endl;
-  for (pair<double, double> v : vertices) {
-    cout << "(" << v.first << ", " << v.second << ")" << endl;
+  for (Point v : vertices) {
+    cout << "(" << v.x << ", " << v.y << ")" << endl;
   }
   cout << "----------------------" << endl;
 }
@@ -51,7 +51,7 @@ void Region::ParserAllRegions(int const &testCase) {
         smatch match = *iter;
         double x = stod(match[1].str());
         double y = stod(match[2].str());
-        tempRegion.vertices.push_back(make_pair(x, y));
+        tempRegion.vertices.push_back(Point(x, y));
         ++iter;
       }
       tempRegion.expandVertices();

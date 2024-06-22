@@ -1,7 +1,8 @@
 #include "Net.h"
 
 void Net::readFile(int const &testCase) {
-	ifstream file("test" + to_string(testCase) + ".json");
+	// ifstream file("test" + to_string(testCase + 1) + ".json");ifstream file("test" + to_string(testCase + 1) + ".json");
+	ifstream file("test6.json");
     if (!file.is_open())
     {
         cerr << "Unable to open file." << endl;
@@ -201,12 +202,12 @@ Net Net::getNet(int const &id) const {
 struct TX Net::absoluteTX(AllZone const &allZone) const {
     double x, y;
     if(TX.TX_NAME[0] == 'B') {
-        x = allZone.getBlock(TX.TX_NAME).coordinate.first;
-        y = allZone.getBlock(TX.TX_NAME).coordinate.second;
+        x = allZone.getBlock(TX.TX_NAME).coordinate.x;
+        y = allZone.getBlock(TX.TX_NAME).coordinate.y;
     }
     else if(TX.TX_NAME[0] == 'R') {
-        x = allZone.getRegion(TX.TX_NAME).vertices[0].first;
-        y = allZone.getRegion(TX.TX_NAME).vertices[0].second;
+        x = allZone.getRegion(TX.TX_NAME).vertices[0].x;
+        y = allZone.getRegion(TX.TX_NAME).vertices[0].y;
     }
     x += TX.TX_COORD.x;
     y += TX.TX_COORD.y;
@@ -219,12 +220,12 @@ struct TX Net::absoluteTX(AllZone const &allZone) const {
 struct RX Net::absoluteRX(RX const &rx, AllZone const &allZone) const {
     double x, y;
     if(rx.RX_NAME[0] == 'B') {
-        x = allZone.getBlock(rx.RX_NAME).coordinate.first;
-        y = allZone.getBlock(rx.RX_NAME).coordinate.second;
+        x = allZone.getBlock(rx.RX_NAME).coordinate.x;
+        y = allZone.getBlock(rx.RX_NAME).coordinate.y;
     }
     else if(rx.RX_NAME[0] == 'R') {
-        x = allZone.getRegion(rx.RX_NAME).vertices[0].first;
-        y = allZone.getRegion(rx.RX_NAME).vertices[0].second;
+        x = allZone.getRegion(rx.RX_NAME).vertices[0].x;
+        y = allZone.getRegion(rx.RX_NAME).vertices[0].y;
     }
     x += rx.RX_COORD.x;
     y += rx.RX_COORD.y;
