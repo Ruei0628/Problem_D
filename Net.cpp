@@ -212,7 +212,7 @@ struct TX Net::absoluteTX(AllZone const &allZone) const {
     x += TX.TX_COORD.x;
     y += TX.TX_COORD.y;
     struct TX newTX;
-    newTX.TX_COORD = Point(x, y);
+    newTX.TX_COORD = Point(x / 2000, y / 2000);
     newTX.TX_NAME = TX.TX_NAME;
 	return newTX;
 }
@@ -230,7 +230,7 @@ struct RX Net::absoluteRX(RX const &rx, AllZone const &allZone) const {
     x += rx.RX_COORD.x;
     y += rx.RX_COORD.y;
     struct RX newRX;
-    newRX.RX_COORD = Point(x, y);
+    newRX.RX_COORD = Point(x / 2000, y / 2000);
     newRX.RX_NAME = rx.RX_NAME;
     return newRX;
 }

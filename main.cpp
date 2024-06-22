@@ -15,8 +15,8 @@
 using namespace std;
 
 // enum class Direction { L, R, U, D };
-constexpr double DX = 0.001;
-constexpr double DY = 0.001;
+constexpr double DX = 1;
+constexpr double DY = 1;
 
 bool compareNetBoundBoxArea(const Net& a, const Net& b) {
 	return a.boundBoxArea < b.boundBoxArea;
@@ -45,8 +45,15 @@ void mikami (TX const &source, RX const &target, AllZone const &allZone) {
 
 	while(1){
 		// step 2: check if intersect
+
+		cout << "OSP: " << OSP.size() << endl
+		<< "CSP: " << CSP.size() << endl
+		<< "OTP: " << OTP.size() << endl
+		<< "CTP: " << CTP.size() << endl;
+
 		bool pathFound = 0;
 		for(Probe const &s : CSP){ 
+			// cout << s.coord.x << ", " << s.coord.y << endl;
 			for(Probe const &t : CTP){ 
 				if (s.coord == t.coord){
 					// which means path is found
@@ -69,9 +76,10 @@ void mikami (TX const &source, RX const &target, AllZone const &allZone) {
 		}
 		if (pathFound) break;
 
-		for (Probe const& s : CTP) {
-			for (Probe const& t : OSP) {
-				if (s.coord == t.coord) {
+		for (Probe const& t : CTP) {
+			// cout << t.coord.x << ", " << t.coord.y << endl;
+			for (Probe const& s : OSP) {
+				if (t.coord == s.coord) {
 					// which means path is found
 					sourceProbeForBacktrace = new Probe(s);
 					targetProbeForBacktrace = new Probe(t);
@@ -113,31 +121,31 @@ void mikami (TX const &source, RX const &target, AllZone const &allZone) {
 				Probe positiveProbe = p.extendedProbe(X, Y, levelCSP + 1);
 				// 如果這個 probe 會撞到牆，直接結束這個方向的 extend
 				if (positiveProbe.hitWall(walls)) {
-					cout << "EPSP hit wall!" << endl;
+					// cout << "EPSP hit wall!" << endl;
 					break;
 				}
 				X += dx;
 				Y += dy;
 				// 如果這個 probe 已經存在 OSP 裡面，跳過這個 probe (但還是會繼續執行 extend)
-				if (positiveProbe.alreadyExist(OSP)) continue; // may be time-consuming
+				//if (positiveProbe.alreadyExist(OSP)) continue; // may be time-consuming
 				ESP.push_back(positiveProbe);
 			}
-			cout << "EPSP done!" << endl;
+			// cout << "EPSP done!" << endl;
 			// 負方向
 			while (1) {
 				Probe negativeProbe = p.extendedProbe(-X, -Y, levelCSP + 1);
 				// 如果這個 probe 會撞到牆，直接結束這個方向的 extend
 				if (negativeProbe.hitWall(walls)) {
-					cout << "ENSP hit wall!" << endl;
+					// cout << "ENSP hit wall!" << endl;
 					break;
 				}
 				X += dx;
 				Y += dy;
 				// 如果這個 probe 已經存在 OSP 裡面，跳過這個 probe (但還是會繼續執行 extend)
-				if (negativeProbe.alreadyExist(OSP)) continue; // may be time-consuming
+				//if (negativeProbe.alreadyExist(OSP)) continue; // may be time-consuming
 				ESP.push_back(negativeProbe);
 			}
-			cout << "ENSP done!" << endl;
+			// cout << "ENSP done!" << endl;
 		}
 		
 		for (Probe const &p : CTP) { // 來自 target
@@ -152,31 +160,31 @@ void mikami (TX const &source, RX const &target, AllZone const &allZone) {
 				Probe positiveProbe = p.extendedProbe(X, Y, levelCTP + 1);
 				// 如果這個 probe 會撞到牆，直接結束這個方向的 extend
 				if (positiveProbe.hitWall(walls)) {
-					cout << "EPTP hit wall!" << endl;
+					// cout << "EPTP hit wall!" << endl;
 					break;
 				}
 				X += dx;
 				Y += dy;
 				// 如果這個 probe 已經存在 OTP 裡面，跳過這個 probe (但還是會繼續執行 extend)
-				if (positiveProbe.alreadyExist(OTP)) continue; // may be time-consuming
+				//if (positiveProbe.alreadyExist(OTP)) continue; // may be time-consuming
 				ETP.push_back(positiveProbe);
 			}
-			cout << "EPTP done!" << endl;
+			// cout << "EPTP done!" << endl;
 			// 負方向
 			while (1) {
 				Probe negativeProbe = p.extendedProbe(-X, -Y, levelCTP + 1);
 				// 如果這個 probe 會撞到牆，直接結束這個方向的 extend
 				if (negativeProbe.hitWall(walls)) {
-					cout << "ENTP hit wall!" << endl;
+					// cout << "ENTP hit wall!" << endl;
 					break;
 				}
 				X += dx;
 				Y += dy;
 				// 如果這個 probe 已經存在 OTP 裡面，跳過這個 probe (但還是會繼續執行 extend)
-				if (negativeProbe.alreadyExist(OTP)) continue; // may be time-consuming
+				//if (negativeProbe.alreadyExist(OTP)) continue; // may be time-consuming
 				ETP.push_back(negativeProbe);
 			}
-			cout << "ENTP done!" << endl;
+			// cout << "ENTP done!" << endl;
 		}
 
 		// 因此我們現在獲得了全部的下一個 level 的 probes (在 extendedProbes 裡)
@@ -186,9 +194,11 @@ void mikami (TX const &source, RX const &target, AllZone const &allZone) {
 		ETP.clear();
 
 		cout << "step 4 complete\n";
+		system("PAUSE");
 	}
 
 	// Step 5: Backtrace
+	cout << "Path found!" << endl;
     vector<Probe> path;
 
     // Backtrace from source probe
@@ -271,7 +281,15 @@ int main()
         }
     }*/
 
-    
+    TX start;
+	start.TX_COORD = Point(2, 3);
+	start.TX_NAME = "Region_100";
+	RX end;
+	end.RX_COORD = Point(3, 6);
+	end.RX_NAME = "Region_100";
+	mikami(start, end, allZone);
+	return 0;
+
 	for (Net const &n : Nets.allNets) {
 	  	TX const &source = n.absoluteTX(allZone);
 	  	for (RX const &rx : n.RXs) {
