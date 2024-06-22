@@ -219,3 +219,10 @@ void Block::ParserAllBlocks(int const &testCase) {
   }
   file_chip_top.close();
 }
+
+void Block::divide_UNITS_DISTANCE_MICRONS(){
+	for (Point &v : vertices) {
+		v.x /= 2000;
+		v.y /= 2000;
+	}
+}

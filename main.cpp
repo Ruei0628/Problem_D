@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -215,38 +216,66 @@ void mikami (TX const &source, RX const &target, AllZone const &allZone) {
 
 int main()
 {
-  cout << fixed << setprecision(3);
-  int testCase = 4;
-  AllZone allZone(testCase);
+	cout << fixed << setprecision(3);
+	int testCase = 4;
+	AllZone allZone(testCase);
+	/*
+	for (Zone *z : allZone.totZone) {
+    	if (Block *bPtr = dynamic_cast<Block *>(z)) {
+          	Block n = *bPtr;
+			cout << n.name << endl;
+		  	for (Point const &b : n.vertices) {
+				cout << b.x <<","<<b.y<<endl;
+		  	}
+        }
+		if (Region *rPtr = dynamic_cast<Region *>(z)) {
+			Region n = *rPtr;
+			cout << n.name << endl;
+    	  	for (Point const &b : n.vertices) {
+				cout << b.x <<","<<b.y<<endl;
+		  	}
+    	}
+  	}*/
 
-  Net Nets;
-  Nets.readFile(testCase);
-  // 把 net 用 bound box 大小重新排序
-  // sort(Nets.allNets.begin(), Nets.allNets.end(), compareNetBoundBoxArea);
-  // Nets.allNets[3].showNetInfo();
+	Net Nets;
+	Nets.readFile(testCase);
+	// 把 net 用 bound box 大小重新排序
+	// sort(Nets.allNets.begin(), Nets.allNets.end(), compareNetBoundBoxArea);
+	// Nets.allNets[3].showNetInfo();
 
-  vector<Wall> walls = allZone.Walls.allWalls;
-  /*
-  for (Wall const &w : walls) {
-          if(w.isVertical){
-                  cout << "(" << w.fixedCoord << ", ["
-                  << w.rangeCoord[0] << ", " << w.rangeCoord[1] << "])\t"
-                  << w.name << endl;
-          } else {
-                  cout << "([" << w.rangeCoord[0] << ", " << w.rangeCoord[1] <<
-  "], "
-                  << w.fixedCoord << ")\t" << w.name << endl;
-          }
+  	vector<Wall> walls = allZone.Walls.allWalls;
+
+	Probe mo(Point(1,2), "A", 1, 0, nullptr);
+	Probe m1 = mo.extendedProbe(2, 0, 1);
+    cout << m1.coord.x << ", " << m1.coord.y << ", prnt:("
+         << m1.parentProbe->coord.x << ", " << m1.parentProbe->coord.y
+         << ") " << m1.directionX << endl;
+    Probe m2 = m1.extendedProbe(0, 2, 2);
+    cout << m2.coord.x << ", " << m2.coord.y << ", prnt:("
+		 << m2.parentProbe->coord.x << ", " << m2.parentProbe->coord.y
+		 << ") " << m2.directionX << endl;
+
+    /*
+    for (Wall const &w : walls) {
+        if(w.isVertical){
+            cout << "(" << w.fixedCoord << ", ["
+            << w.rangeCoord[0] << ", " << w.rangeCoord[1] << "])\t"
+            << w.name << endl;
+        } else {
+                cout << "([" << w.rangeCoord[0] << ", " << w.rangeCoord[1] <<"],
+    "
+                << w.fixedCoord << ")\t" << w.name << endl;
+        }
+    }*/
+
+    /*
+for (Net const &n : Nets.allNets) {
+  TX const &source = n.absoluteTX(allZone);
+  for (RX const &rx : n.RXs) {
+    RX const &target = n.absoluteRX(rx, allZone);
+    mikami(source, target, allZone);
   }
-  */
-  if (1)
-    for (Net const &n : Nets.allNets) {
-      TX const &source = n.absoluteTX(allZone);
-      for (RX const &rx : n.RXs) {
-        RX const &target = n.absoluteRX(rx, allZone);
-        mikami(source, target, allZone);
-      }
-    }
+}*/
 }
 
 // cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ main.cpp AllZone.cpp Block.cpp Net.cpp Probe.cpp Region.cpp Wall.cpp -o main} ; if ($?) { .\main }

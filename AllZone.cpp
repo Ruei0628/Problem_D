@@ -10,14 +10,16 @@ AllZone::AllZone(int const &testCase) {
   Blocks.ParserAllBlocks(testCase);
   Regions.ParserAllRegions(testCase);
 
-  Walls.getBlockVertices(Blocks);
-
   for (Block b : Blocks.allBlocks) {
+    b.divide_UNITS_DISTANCE_MICRONS();
+    Walls.getBlockVertices(b);
     totZone.push_back(new Block(b));
   }
   for (Region r : Regions.allRegions) {
+	r.divide_UNITS_DISTANCE_MICRONS();
     totZone.push_back(new Region(r));
   }
+
 }
 
 Block AllZone::getBlock(string blockName) const {

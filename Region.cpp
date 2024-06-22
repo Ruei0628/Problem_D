@@ -59,3 +59,10 @@ void Region::ParserAllRegions(int const &testCase) {
     }
   }
 }
+
+void Region::divide_UNITS_DISTANCE_MICRONS(){
+	for (Point &v : vertices) {
+		v.x /= 2000;
+		v.y /= 2000;
+	}
+}

@@ -12,27 +12,25 @@ Point inOrder(double a, double b){
 	return Point(small, big);
 }
 
-void Wall::getBlockVertices(Block const &block) {
-  for (Block const &b : block.allBlocks) {
-	if (b.is_feedthroughable) continue;
-    for (int i = 0; i < b.vertices.size(); i++) {
-      double x1 = b.vertices[i].x;
-      double x2 = b.vertices[(i + 1) % b.vertices.size()].x;
-      double y1 = b.vertices[i].y;
-      double y2 = b.vertices[(i + 1) % b.vertices.size()].y;
-      if (x1 == x2) {
-		// then it should be the vertical wall
-		double y[2] = {inOrder(y1, y2).x, inOrder(y1, y2).y};
-		allWalls.push_back(Wall(1, x1, y, b.name));
-      } else if (y1 == y2) {
-        // then it should be the horizontal wall
-        double x[2] = {inOrder(x1, x2).x, inOrder(x1, x2).y};
-        allWalls.push_back(Wall(0, y1, x, b.name));
-      } else {
-		break; // this should not happend
-	  }
-    }
-  }
+void Wall::getBlockVertices(Block const &b) {
+  	if (b.is_feedthroughable) return;
+	for (int i = 0; i < b.vertices.size(); i++) {
+		double x1 = b.vertices[i].x;
+		double x2 = b.vertices[(i + 1) % b.vertices.size()].x;
+		double y1 = b.vertices[i].y;
+		double y2 = b.vertices[(i + 1) % b.vertices.size()].y;
+		if (x1 == x2) {
+			// then it should be the vertical wall
+			double y[2] = {inOrder(y1, y2).x, inOrder(y1, y2).y};
+			allWalls.push_back(Wall(1, x1, y, b.name));
+		} else if (y1 == y2) {
+			// then it should be the horizontal wall
+			double x[2] = {inOrder(x1, x2).x, inOrder(x1, x2).y};
+			allWalls.push_back(Wall(0, y1, x, b.name));
+		} else {
+			break; // this should not happend
+		}
+	}
 }
 
 bool compare(const Wall &a, const Wall &b) {

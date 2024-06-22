@@ -40,6 +40,7 @@ public:
   void expandVertices();
   void facingAndFlip(string facingFlip, vector<Point> &vertices);
   void shiftCoordinate(Point shift, vector<Point> &vertices);
+  void divide_UNITS_DISTANCE_MICRONS();
   void showBlockInfo();
 };
 

@@ -22,6 +22,7 @@ public:
 
   void ParserAllRegions(int const &case_serial_number);
   void expandVertices();
+  void divide_UNITS_DISTANCE_MICRONS();
   void showRegionInfo();
 };
 

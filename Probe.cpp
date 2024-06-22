@@ -11,12 +11,10 @@ Probe::Probe(Point coord, string zoneName, bool directionX, int level, Probe *pa
 
 Probe Probe::extendedProbe(double dx, double dy, int lv) const {
 	Point newPoint(coord.x + dx, coord.y + dy);
-	if (fmod(coord.x, 1.0) == 0.0){
-		cout << newPoint.x << ", " << newPoint.y << ")\n";
-	}
 	return Probe(newPoint, zoneName, !directionX, lv, const_cast<Probe*>(this));
 }
 bool Probe::hitWall(vector<Wall> const &walls) const {
+	cout << coord.x << ", " << coord.y << ", "<<directionX<<"\n";
 	// 兩種情況要停下來
 	// 1. 碰到不是自己來源的 non-feedthroughable block
 	// (自己來源的意思是，如果是 source 的話就是 RX 的那個 block 或 region)
@@ -41,9 +39,9 @@ bool Probe::hitWall(vector<Wall> const &walls) const {
 	}
 	// 2. 碰到 chip 邊界
 	const double boundaryL = 0.0;
-	const double boundaryR = 12440136.0;
+	const double boundaryR = 6220.068;
 	const double boundaryD = 0.0;
-	const double boundaryU = 10368720.0;
+	const double boundaryU = 5184.36;
 	if (directionX && (coord.x >= boundaryR || coord.x <= boundaryL)){
 		return 1;
 	}
