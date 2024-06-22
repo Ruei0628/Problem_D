@@ -14,7 +14,7 @@ Probe Probe::extendedProbe(double dx, double dy, int lv) const {
 	return Probe(newPoint, zoneName, !directionX, lv, const_cast<Probe*>(this));
 }
 bool Probe::hitWall(vector<Wall> const &walls) const {
-	cout << coord.x << ", " << coord.y << ", "<<directionX<<"\n";
+	// cout << coord.x << ", " << coord.y << ", "<<directionX<<"\n";
 	// 兩種情況要停下來
 	// 1. 碰到不是自己來源的 non-feedthroughable block
 	// (自己來源的意思是，如果是 source 的話就是 RX 的那個 block 或 region)
@@ -42,10 +42,10 @@ bool Probe::hitWall(vector<Wall> const &walls) const {
 	const double boundaryR = 6220.068;
 	const double boundaryD = 0.0;
 	const double boundaryU = 5184.36;
-	if (directionX && (coord.x >= boundaryR || coord.x <= boundaryL)){
+	if ((coord.x >= boundaryR || coord.x <= boundaryL)){
 		return 1;
 	}
-	if (!directionX && (coord.y >= boundaryU || coord.y <= boundaryD)){
+	if ((coord.y >= boundaryU || coord.y <= boundaryD)){
 		return 1;
 	}
 	return 0;

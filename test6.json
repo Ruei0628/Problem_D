@@ -1,8 +1,8 @@
 [
   {
     "ID":1164,
-    "TX":"REGION_140",
-    "RX":["BLOCK_9"],
+    "TX":"BLOCK_0",
+    "RX":["BLOCK_29"],
     "NUM":4,
     "MUST_THROUGH":{},
     "HMFT_MUST_THROUGH":{},

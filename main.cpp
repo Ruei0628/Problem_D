@@ -137,6 +137,7 @@ void mikami (TX const &source, RX const &target, AllZone const &allZone) {
 				if (negativeProbe.alreadyExist(OSP)) continue; // may be time-consuming
 				ESP.push_back(negativeProbe);
 			}
+			cout << "ENSP done!" << endl;
 		}
 		
 		for (Probe const &p : CTP) { // 來自 target
@@ -160,6 +161,7 @@ void mikami (TX const &source, RX const &target, AllZone const &allZone) {
 				if (positiveProbe.alreadyExist(OTP)) continue; // may be time-consuming
 				ETP.push_back(positiveProbe);
 			}
+			cout << "EPTP done!" << endl;
 			// 負方向
 			while (1) {
 				Probe negativeProbe = p.extendedProbe(-X, -Y, levelCTP + 1);
@@ -174,6 +176,7 @@ void mikami (TX const &source, RX const &target, AllZone const &allZone) {
 				if (negativeProbe.alreadyExist(OTP)) continue; // may be time-consuming
 				ETP.push_back(negativeProbe);
 			}
+			cout << "ENTP done!" << endl;
 		}
 
 		// 因此我們現在獲得了全部的下一個 level 的 probes (在 extendedProbes 裡)
@@ -244,7 +247,7 @@ int main()
 	// Nets.allNets[3].showNetInfo();
 
   	vector<Wall> walls = allZone.Walls.allWalls;
-
+	/*
 	Probe mo(Point(1,2), "A", 1, 0, nullptr);
 	Probe m1 = mo.extendedProbe(2, 0, 1);
     cout << m1.coord.x << ", " << m1.coord.y << ", prnt:("
@@ -254,7 +257,7 @@ int main()
     cout << m2.coord.x << ", " << m2.coord.y << ", prnt:("
 		 << m2.parentProbe->coord.x << ", " << m2.parentProbe->coord.y
 		 << ") " << m2.directionX << endl;
-
+	*/
     /*
     for (Wall const &w : walls) {
         if(w.isVertical){
@@ -268,14 +271,14 @@ int main()
         }
     }*/
 
-    /*
-for (Net const &n : Nets.allNets) {
-  TX const &source = n.absoluteTX(allZone);
-  for (RX const &rx : n.RXs) {
-    RX const &target = n.absoluteRX(rx, allZone);
-    mikami(source, target, allZone);
-  }
-}*/
+    
+	for (Net const &n : Nets.allNets) {
+	  	TX const &source = n.absoluteTX(allZone);
+	  	for (RX const &rx : n.RXs) {
+	  	  	RX const &target = n.absoluteRX(rx, allZone);
+	  	  	mikami(source, target, allZone);
+	  	}
+	}
 }
 
 // cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ main.cpp AllZone.cpp Block.cpp Net.cpp Probe.cpp Region.cpp Wall.cpp -o main} ; if ($?) { .\main }
