@@ -8,7 +8,7 @@ CXXFLAGS = -Wall -g
 TARGET = main
 
 # 源文件
-SRCS = main.cpp AllZone.cpp Block.cpp Net.cpp Region.cpp
+SRCS = main.cpp AllZone.cpp Block.cpp Net.cpp Probe.cpp Region.cpp Wall.cpp
 
 # 生成的目標文件 (.o)
 OBJS = $(SRCS:.cpp=.o)

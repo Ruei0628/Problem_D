@@ -51,18 +51,11 @@ void Region::ParserAllRegions(int const &testCase) {
         smatch match = *iter;
         double x = stod(match[1].str());
         double y = stod(match[2].str());
-        tempRegion.vertices.push_back(Point(x, y));
+        tempRegion.vertices.push_back(Point(x / 2000, y / 2000));
         ++iter;
       }
       tempRegion.expandVertices();
       this->allRegions.push_back(tempRegion);
     }
   }
-}
-
-void Region::divide_UNITS_DISTANCE_MICRONS(){
-	for (Point &v : vertices) {
-		v.x /= 2000;
-		v.y /= 2000;
-	}
 }

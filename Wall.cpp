@@ -27,8 +27,6 @@ void Wall::getBlockVertices(Block const &b) {
 			// then it should be the horizontal wall
 			double x[2] = {inOrder(x1, x2).x, inOrder(x1, x2).y};
 			allWalls.push_back(Wall(0, y1, x, b.name));
-		} else {
-			break; // this should not happend
 		}
 	}
 }

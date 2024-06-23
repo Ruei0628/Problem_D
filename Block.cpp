@@ -62,8 +62,8 @@ void Block::facingAndFlip(string facingFlip,
   }
 
   // shift to nonnegative
-  double minX = 1000;
-  double minY = 1000;
+  double minX = 6220;
+  double minY = 5180;
   for (Point &vertex : vertices) {
     if (vertex.x < minX)
       minX = vertex.x;
@@ -76,8 +76,7 @@ void Block::facingAndFlip(string facingFlip,
   }
 }
 
-void Block::shiftCoordinate(Point shift,
-                            vector<Point> &vertices) {
+void Block::shiftCoordinate(Point shift, vector<Point> &vertices) {
   for (Point &vertex : vertices) {
     vertex.x += shift.x;
     vertex.y += shift.y;
@@ -187,6 +186,8 @@ void Block::ParserAllBlocks(int const &testCase) {
         		smatch match = *iter;
         		double x = stod(match[1].str());
         		double y = stod(match[2].str());
+				x /= 2000;
+				y /= 2000;
         		tempBlock.vertices.push_back(Point(x, y));
         		++iter;
         	}
@@ -196,7 +197,11 @@ void Block::ParserAllBlocks(int const &testCase) {
 
     	// getCoordinate
     	if (std::regex_search(line, m, getCoordinate) && m.size() == 3) {
-    		tempBlock.coordinate = Point(stod(m[1]), stod(m[2]));
+        	double x = stod(m[1]);
+        	double y = stod(m[2]);
+			x /= 2000;
+			y /= 2000;
+    		tempBlock.coordinate = Point(x, y);
     	}
 
     	// getFacingFlip
@@ -218,11 +223,4 @@ void Block::ParserAllBlocks(int const &testCase) {
     }
   }
   file_chip_top.close();
-}
-
-void Block::divide_UNITS_DISTANCE_MICRONS(){
-	for (Point &v : vertices) {
-		v.x /= 2000;
-		v.y /= 2000;
-	}
 }

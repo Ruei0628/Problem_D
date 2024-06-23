@@ -23,29 +23,33 @@ bool Probe::hitWall(vector<Wall> const &walls) const {
 		// 如果是起點而且碰到起點 zone 的牆壁則忽略
 		if (zoneName == w.name) continue;
 		// 走橫向的 probes 碰到垂直的牆壁
-		if (directionX && w.isVertical){
+		if (!directionX && w.isVertical){
 			// 好像就不用判斷說是往右還是往左
 			if(coord.x == w.fixedCoord && w.inRange(coord.y)){
+				//cout << "hit wall" << endl;
 				return 1;
 			}
 		}
 		// 走縱向的 probes 碰到水平的牆壁
-		if (!directionX && !w.isVertical){
+		if (directionX && !w.isVertical){
 			// 好像就不用判斷說是往上還是往下
-			if(coord.x == w.fixedCoord && w.inRange(coord.y)){
+			if(coord.y == w.fixedCoord && w.inRange(coord.x)){
+				//cout << "hit wall" << endl;
 				return 1;
 			}
 		}
 	}
 	// 2. 碰到 chip 邊界
-	const double boundaryL = 0.0;
+	const double boundaryL = 0.000;
 	const double boundaryR = 6220.068;
-	const double boundaryD = 0.0;
+	const double boundaryD = 0.000;
 	const double boundaryU = 5184.36;
 	if ((coord.x >= boundaryR || coord.x <= boundaryL)){
+		//cout << "hit boundary" << endl;
 		return 1;
 	}
 	if ((coord.y >= boundaryU || coord.y <= boundaryD)){
+		//cout << "hit boundary" << endl;
 		return 1;
 	}
 	return 0;

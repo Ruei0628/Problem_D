@@ -1,8 +1,8 @@
 #include "Net.h"
+#include <cmath>
 
 void Net::readFile(int const &testCase) {
-	// ifstream file("test" + to_string(testCase + 1) + ".json");ifstream file("test" + to_string(testCase + 1) + ".json");
-	ifstream file("test6.json");
+	ifstream file("test" + to_string(testCase) + ".json");
     if (!file.is_open())
     {
         cerr << "Unable to open file." << endl;
@@ -209,10 +209,12 @@ struct TX Net::absoluteTX(AllZone const &allZone) const {
         x = allZone.getRegion(TX.TX_NAME).vertices[0].x;
         y = allZone.getRegion(TX.TX_NAME).vertices[0].y;
     }
-    x += TX.TX_COORD.x;
-    y += TX.TX_COORD.y;
+    x += TX.TX_COORD.x / 2000;
+    y += TX.TX_COORD.y / 2000;
+    x = std::ceil(x * 1000.0) / 1000.0;
+    y = std::ceil(y * 1000.0) / 1000.0;
     struct TX newTX;
-    newTX.TX_COORD = Point(x / 2000, y / 2000);
+    newTX.TX_COORD = Point(x, y);
     newTX.TX_NAME = TX.TX_NAME;
 	return newTX;
 }
@@ -227,10 +229,12 @@ struct RX Net::absoluteRX(RX const &rx, AllZone const &allZone) const {
         x = allZone.getRegion(rx.RX_NAME).vertices[0].x;
         y = allZone.getRegion(rx.RX_NAME).vertices[0].y;
     }
-    x += rx.RX_COORD.x;
-    y += rx.RX_COORD.y;
+    x += rx.RX_COORD.x / 2000;
+    y += rx.RX_COORD.y / 2000;
+    x = std::ceil(x * 1000.0) / 1000.0;
+    y = std::ceil(y * 1000.0) / 1000.0;
     struct RX newRX;
-    newRX.RX_COORD = Point(x / 2000, y / 2000);
+    newRX.RX_COORD = Point(x, y);
     newRX.RX_NAME = rx.RX_NAME;
     return newRX;
 }
