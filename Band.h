@@ -1,7 +1,7 @@
 #ifndef BAND_H_INCLUDED
 #define BAND_H_INCLUDED
 
-#include "AllZone.h"
+#include "Chip.h"
 
 class Band {
 public: 

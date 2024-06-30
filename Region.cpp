@@ -41,8 +41,8 @@ void Region::ParserAllRegions(int const &testCase) {
 		if (line.find(startWith) == 0) {
 			// regionName
 			if (regex_search(line, m, getRegionName)) {
-			  	tempRegion.name = m.str();
-			}   
+				tempRegion.name = m.str();
+			}
 			// vertices
 			sregex_iterator iter(line.begin(), line.end(), getVertices);
 			sregex_iterator end;

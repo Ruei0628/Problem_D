@@ -1,9 +1,9 @@
-#include "AllZone.h"
+#include "Chip.h"
 #include "Wall.h"
 
 using namespace std;
 
-AllZone::AllZone(int const &testCase) {
+Chip::Chip(int const &testCase) {
 	Block Blocks;
 	Region Regions;
 
@@ -64,7 +64,7 @@ AllZone::AllZone(int const &testCase) {
 	Walls.allWalls.push_back(Wall(1, 60, 4, 9, "testT"));
 }
 
-Block AllZone::getBlock(string blockName) const {
+Block Chip::getBlock(string blockName) const {
 	for (Zone *z : totZone) {
 		if (Block *bPtr = dynamic_cast<Block *>(z)) {
 			if (bPtr->name == blockName)
@@ -73,7 +73,7 @@ Block AllZone::getBlock(string blockName) const {
 	}
 }
 
-Region AllZone::getRegion(string regionName) const {
+Region Chip::getRegion(string regionName) const {
 	for (Zone *z : totZone) {
 		if (Region *rPtr = dynamic_cast<Region *>(z)) {
 			if (rPtr->name == regionName) {
@@ -83,7 +83,7 @@ Region AllZone::getRegion(string regionName) const {
 	}
 }
 
-void AllZone::showAllZone() {
+void Chip::showAllZones() {
 	for (Zone *z : totZone) {
 		if (Block *bPtr = dynamic_cast<Block *>(z)) {
 			bPtr->showBlockInfo();
@@ -93,7 +93,7 @@ void AllZone::showAllZone() {
 	}
 }
 
-AllZone::~AllZone() {
+Chip::~Chip() {
 	for (Zone *z : totZone) {
 		delete z;
 	}

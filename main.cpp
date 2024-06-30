@@ -17,7 +17,7 @@ bool compareNetBoundBoxArea(const Net& a, const Net& b) {
 	return a.boundBoxArea < b.boundBoxArea;
 }
 
-void mikami (TX const &source, RX const &target, AllZone const &allZone) {
+void mikami (TX const &source, RX const &target, Chip const &chip) {
 	cout << "Start mikami!" << endl;
 	//step 1: initializaiotn
 	vector<Probe*> CSP; // stands for current source probes
@@ -31,7 +31,7 @@ void mikami (TX const &source, RX const &target, AllZone const &allZone) {
 	CTP.push_back(new Probe(target.RX_COORD, target.RX_NAME, 1, 0, nullptr));
 	CTP.push_back(new Probe(target.RX_COORD, target.RX_NAME, 0, 0, nullptr));
 	
-	vector<Wall> const walls = allZone.Walls.allWalls;
+	vector<Wall> const walls = chip.Walls.allWalls;
 	/*
 	for (Wall const &w : walls) {
 		if(w.isVertical){
@@ -256,7 +256,7 @@ int main()
 	cout << fixed << setprecision(1);
 
  	int testCase = 4;
-	AllZone allZone(testCase);
+	Chip chip(testCase);
 	/*
     for (Zone *z : allZone.totZone) {
       	if (Block *bPtr = dynamic_cast<Block *>(z)) {
@@ -288,7 +288,7 @@ int main()
   	RX end;
   	end.RX_COORD = Point(56, 6);
   	end.RX_NAME = "testT";
-  	mikami(start, end, allZone);
+  	mikami(start, end, chip);
 	return 0;
 
 	// 把 net 用 bound box 大小重新排序
@@ -310,10 +310,10 @@ int main()
 	
 	for (Net const &n : Nets.allNets) {
 		cout << "[ID_" << n.ID << "]" << endl;
-		TX const &source = n.absoluteTX(allZone);
+		TX const &source = n.absoluteTX(chip);
 		for (RX const &rx : n.RXs) {
-			RX const &target = n.absoluteRX(rx, allZone);
-			mikami(source, target, allZone);
+			RX const &target = n.absoluteRX(rx, chip);
+			mikami(source, target, chip);
 		}
 	}
 

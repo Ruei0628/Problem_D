@@ -1,5 +1,5 @@
-#ifndef ALLZONE_H_INCLUDED
-#define ALLZONE_H_INCLUDED
+#ifndef CHIP_H_INCLUDED
+#define CHIP_H_INCLUDED
 
 #include "Block.h"
 #include "Region.h"
@@ -8,17 +8,17 @@
 
 using namespace std;
 
-class AllZone : public Zone {
+class Chip : public Zone {
 public:
-  AllZone(int const &testCase);
+  Chip(int const &testCase);
   vector<Zone *> totZone;
 
   Wall Walls;
 
-  void showAllZone();
+  void showAllZones();
   Block getBlock(string) const;
   Region getRegion(string) const;
-  ~AllZone();
+  ~Chip();
 };
 
-#endif // ALLZONE_H_INCLUDED
+#endif // CHIP_H_INCLUDED

@@ -1,7 +1,7 @@
 #ifndef NET_H_INCLUDE
 #define NET_H_INCLUDE
 
-#include "AllZone.h"
+#include "Chip.h"
 #include "Point.h"
 #include "include\rapidjson\document.h"
 #include <array>
@@ -49,10 +49,10 @@ public:
 	vector<Net> allNets;
 
 	double boundBoxArea;
-	void getBoundBoxArea(AllZone const &allZone);
+	void getBoundBoxArea(Chip const &chip);
 
-	struct TX absoluteTX(AllZone const &allZone) const;
-	struct RX absoluteRX(RX const &rx, AllZone const &allZone) const;
+	struct TX absoluteTX(Chip const &chip) const;
+	struct RX absoluteRX(RX const &rx, Chip const &chip) const;
 
 	void ParserAllNets(int const &testCase);
 	Net getNet(int const &ID) const;

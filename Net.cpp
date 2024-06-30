@@ -77,11 +77,11 @@ Net Net::getNet(int const &id) const {
 	}
 }
 
-struct TX Net::absoluteTX(AllZone const &allZone) const {
+struct TX Net::absoluteTX(Chip const &chip) const {
     double x = 0, y = 0;
     if(TX.TX_NAME[0] == 'B') {
-        x = allZone.getBlock(TX.TX_NAME).coordinate.x;
-        y = allZone.getBlock(TX.TX_NAME).coordinate.y;
+        x = chip.getBlock(TX.TX_NAME).coordinate.x;
+        y = chip.getBlock(TX.TX_NAME).coordinate.y;
     }
     x += TX.TX_COORD.x;
     y += TX.TX_COORD.y;
@@ -91,11 +91,11 @@ struct TX Net::absoluteTX(AllZone const &allZone) const {
 	return newTX;
 }
 
-struct RX Net::absoluteRX(RX const &rx, AllZone const &allZone) const {
+struct RX Net::absoluteRX(RX const &rx, Chip const &chip) const {
     double x = 0, y = 0;
     if(rx.RX_NAME[0] == 'B') {
-        x = allZone.getBlock(rx.RX_NAME).coordinate.x;
-        y = allZone.getBlock(rx.RX_NAME).coordinate.y;
+        x = chip.getBlock(rx.RX_NAME).coordinate.x;
+        y = chip.getBlock(rx.RX_NAME).coordinate.y;
     }
     x += rx.RX_COORD.x;
     y += rx.RX_COORD.y;
@@ -118,12 +118,12 @@ double findBoundBox(vector<Point> const &coords){
 	return (x_max - x_min) * (y_max - y_min);
 }
 
-void Net::getBoundBoxArea(AllZone const &allZone){
+void Net::getBoundBoxArea(Chip const &chip){
 	vector<Point> coords;
 	for(RX const &rx : RXs){
-		coords.push_back(this->absoluteRX(rx, allZone).RX_COORD);
+		coords.push_back(this->absoluteRX(rx, chip).RX_COORD);
 	}
-	coords.push_back(this->absoluteTX(allZone).TX_COORD);
+	coords.push_back(this->absoluteTX(chip).TX_COORD);
 	boundBoxArea = findBoundBox(coords);
 }
 
