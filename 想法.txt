@@ -29,3 +29,33 @@ Routing 的想法：
 所以我們就記錄這個位置，然後持續檢查，直到又有一個變化
 那我們就把這之間的點都做一個recurrsion，也就是再 routing 一次
 (那終點也要做？)
+
+新的Band search algorithm的發想:
+一開始只有起點和終點，以及一堆牆壁
+第一個level的band會是只有線，沒有寬度
+source(x1, y1)會產生
+Band_X(){
+	containTerminal = 1;
+	zoneName = sourceZoneName;
+	direction_isX = 1;
+	parent = nullptr;
+	minEdge = maxEdge = y1;
+	minEnd = maxEnd = x1;
+	然後這個band會做direction的detectWall{
+		for w : allWalls {
+			do {
+				maxEnd += dx;
+				minEnd += dx;
+				if(hitWall) break;
+			}
+		}
+	}
+}
+Band_Y 做同樣的事情
+一樣會有OSB、OTB、CSB、CTB
+step1: initialization
+step2: search if intersect
+step3: store current into old
+step4: use current to extend new bands (ESB、ETB)
+	   and exchange the extended and current
+step5: find the path

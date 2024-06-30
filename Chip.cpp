@@ -11,7 +11,7 @@ Chip::Chip(int const &testCase) {
 	Regions.ParserAllRegions(testCase);
 		
 	for (Block b : Blocks.allBlocks) {
-		Walls.getBlockVertices(b);
+		//Walls.getBlockVertices(b);
 		totZone.push_back(new Block(b));
 	}
 	for (Region r : Regions.allRegions) {

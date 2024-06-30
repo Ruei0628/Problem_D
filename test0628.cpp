@@ -112,4 +112,5 @@ int main() {
 		showNetInfo(tempNet);
 	}
 	file.close();
+	system("PAUSE");
 }
