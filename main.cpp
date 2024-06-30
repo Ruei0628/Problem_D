@@ -277,7 +277,10 @@ int main()
 	*/
 
     Net Nets;
-	//Nets.readFile(testCase);
+	Nets.ParserAllNets(testCase);
+	for (Net &n : Nets.allNets) {
+		n.showNetInfo();
+	}
 
 	TX start;
   	start.TX_COORD = Point(13, 12);
@@ -319,4 +322,5 @@ int main()
 }
 
 // cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ main.cpp AllZone.cpp Block.cpp Net.cpp Probe.cpp Region.cpp Wall.cpp -o main} ; if ($?) { .\main }
+// cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ test0628.cpp AllZone.cpp Block.cpp Net.cpp Probe.cpp Region.cpp Wall.cpp -o test0628} ; if ($?) { .\main }
 // cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ main.cpp Net.cpp -o main} ; if ($?) { .\main }

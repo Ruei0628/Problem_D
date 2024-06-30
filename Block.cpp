@@ -117,7 +117,7 @@ void Block::showBlockInfo() {
 void Block::ParserAllBlocks(int const &testCase) {
 	// Open chip_top.def to get
 	// blockName, blkID, coordinate, facingFlip
-	ifstream file_chip_top("case" + to_string(testCase) + "_def/chip_top.def");
+	ifstream file_chip_top("cad_case0" + to_string(testCase) + "/case0" + to_string(testCase) + "/chip_top.def");
 
 	string line;
 	string startWith = "- BLOCK_";
@@ -136,7 +136,7 @@ void Block::ParserAllBlocks(int const &testCase) {
 				// Open caseOO_cfg.json to get
 				// through_block_net_num, through_block_edge_net_num
 				// block_port_region, is_feedthroughable, is_tile
-				ifstream file_cfg("case" + to_string(testCase) + "_cfg.json");
+				ifstream file_cfg("cad_case0" + to_string(testCase) + "/case0" + to_string(testCase) + "_cfg.json");
 				stringstream buffer;
 				buffer << file_cfg.rdbuf();
 				string jsonString = buffer.str();
@@ -171,7 +171,7 @@ void Block::ParserAllBlocks(int const &testCase) {
 				tempBlock.blkID = m.str();
 
 				// Open blk file to get vertices
-				ifstream file_blk("case" + to_string(testCase) + "_def/" + tempBlock.blkID + ".def");
+				ifstream file_blk("cad_case0" + to_string(testCase) + "/case0" + to_string(testCase) + "/" + tempBlock.blkID + ".def");
 				int lineNum = 1;
 				string verticesInfo;
 				while (getline(file_blk, verticesInfo)) {

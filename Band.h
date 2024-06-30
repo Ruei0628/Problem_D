@@ -1,16 +1,14 @@
 #ifndef BAND_H_INCLUDED
 #define BAND_H_INCLUDED
 
-#include <vector>
 #include "AllZone.h"
-
-using namespace std;
 
 class Band {
 public: 
 	Band(){}
 	Band(bool, bool, double, double, double, double, Band*);
 	bool containTerminal;
+	string zoneName;
 	Band *parent = nullptr;
 	int level = 0;
 	bool direction_isX;

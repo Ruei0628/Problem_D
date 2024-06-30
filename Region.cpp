@@ -30,7 +30,7 @@ void Region::showRegionInfo() {
 void Region::ParserAllRegions(int const &testCase) {
 	// Open chip_top.def to get
 	// regionName, vertices
-	ifstream file("case" + to_string(testCase) + "_def/chip_top.def");
+	ifstream file("cad_case0" + to_string(testCase) + "/case0" + to_string(testCase) + "/chip_top.def");
 	string line;
 	string startWith = "- REGION_";
 	regex getRegionName(R"(REGION_\d+)");

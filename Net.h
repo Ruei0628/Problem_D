@@ -4,6 +4,7 @@
 #include "AllZone.h"
 #include "Point.h"
 #include "include\rapidjson\document.h"
+#include <array>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -25,14 +26,12 @@ struct RX {
 
 struct MUST_THROUGH {
 	string blockName;
-	double edgeIn[4];
-	double edgeOut[4];
+	vector<array<double, 4>> edges;
 };
 
 struct HMFT_MUST_THROUGH {
 	string blockName;
-	double edgeIn[4];
-	double edgeOut[4];
+	vector<array<double, 4>> edges;
 };
 
 class Net {
@@ -55,7 +54,6 @@ public:
 	struct TX absoluteTX(AllZone const &allZone) const;
 	struct RX absoluteRX(RX const &rx, AllZone const &allZone) const;
 
-	void readFile(int const &testCase);
 	void ParserAllNets(int const &testCase);
 	Net getNet(int const &ID) const;
 	void showNetInfo();
