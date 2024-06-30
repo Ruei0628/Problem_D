@@ -193,6 +193,92 @@ void Net::readFile(int const &testCase) {
     file.close();
 }
 
+void Net::ParserAllNets(int const &testCase) {
+	ifstream file("test" + to_string(testCase) + ".json");
+	stringstream buffer;
+	buffer << file.rdbuf();
+	string jsonString = buffer.str();
+	Document document;
+	document.Parse(jsonString.c_str());
+	for (const auto &net : document.GetArray()) {
+		Net tempNet;
+		tempNet.ID = net["ID"].GetInt();
+		tempNet.TX.TX_NAME = net["TX"].GetString();
+		tempNet.num = net["NUM"].GetInt();
+
+	    vector<string> tempRXNameArray;
+		// Parse RX array
+		const Value &RX_NAME = net["RX"];
+		for (const auto &rxName : RX_NAME.GetArray()) {
+			tempRXNameArray.push_back(rxName.GetString());
+		}
+		vector<Point> tempRXCoordArray;
+		// Parse RX_COORD array
+		const Value &RX_COORD = net["RX_COORD"];
+		for (const auto &coordinate : RX_COORD.GetArray()) {
+			double x = coordinate[0].GetDouble();
+			double y = coordinate[1].GetDouble();
+			tempRXCoordArray.push_back(Point(x, y));
+		}
+		// Write into RXs
+	    for(int i = 0; i < tempRXNameArray.size(); i++){
+	    	tempNet.RXs.push_back(RX{tempRXNameArray[i], tempRXCoordArray[i]});
+	    }
+
+		// Parse TX_COORD
+		const Value &TX_COORD = net["TX_COORD"];
+		if (TX_COORD.IsArray() && TX_COORD.Size() == 2) {
+			tempNet.TX.TX_COORD = Point(TX_COORD[0].GetDouble(), TX_COORD[1].GetDouble());
+		}
+
+		// Parse HMFT_MUST_THROUGH
+		const Value &HMFTMT = net["HMFT_MUST_THROUGH"];
+		for (const auto &hmftmt : HMFTMT.GetArray()) {
+		    const Value &hmftmtData = hmftmt;
+		    HMFT_MUST_THROUGH tempHMFTMT;
+		    // First get the zone name
+		    tempHMFTMT.blockName = hmftmtData[0].GetString();
+		    // Next get edgeIn coordinates, there are four of them
+		    const Value &dataEdgeIn = hmftmtData[1];
+		    for(int i = 0; i < dataEdgeIn.Size(); i++){
+		    	tempHMFTMT.edgeIn[i] = dataEdgeIn[i].GetDouble();
+		    }
+		    // Then get edgeOut coordinates, there are four of them
+		    const Value &dataEdgeOut = hmftmtData[2];
+		    for (int i = 0; i < dataEdgeOut.Size(); i++) {
+		    	tempHMFTMT.edgeOut[i] = dataEdgeOut[i].GetDouble();
+		    }
+		    // So we get name, edgeIn, edgeOut happily
+		    // Finally we write these into the HMFTMTs
+		    tempNet.HMFT_MUST_THROUGHs.push_back(tempHMFTMT);
+		}
+
+        // Parse MUST_THROUGH
+		const Value &MT = net["MUST_THROUGH"];
+		for (const auto &mt : MT.GetArray()) {
+			const Value &mtData = mt;
+			MUST_THROUGH tempMT;
+			// First get the zone name
+			tempMT.blockName = mtData[0].GetString();
+			// Next get edgeIn coordinates, there are four of them
+			const Value &dataEdgeIn = mtData[1];
+			for (int i = 0; i < dataEdgeIn.Size(); i++) {
+				tempMT.edgeIn[i] = dataEdgeIn[i].GetDouble();
+			}
+			// Then get edgeOut coordinates, there are four of them
+			const Value &dataEdgeOut = mtData[2];
+			for (int i = 0; i < dataEdgeOut.Size(); i++) {
+				tempMT.edgeOut[i] = dataEdgeOut[i].GetDouble();
+			}
+			// So we get name, edgeIn, edgeOut happily
+			// Finally we write these into the HMFTMTs
+			tempNet.MUST_THROUGHs.push_back(tempMT);
+		}
+	    this->allNets.push_back(tempNet);
+	}
+	file.close();
+}
+
 Net Net::getNet(int const &id) const {
 	for (const Net &n : allNets) {
 		if (n.ID == id) return n;
@@ -200,19 +286,13 @@ Net Net::getNet(int const &id) const {
 }
 
 struct TX Net::absoluteTX(AllZone const &allZone) const {
-    double x, y;
+    double x = 0, y = 0;
     if(TX.TX_NAME[0] == 'B') {
         x = allZone.getBlock(TX.TX_NAME).coordinate.x;
         y = allZone.getBlock(TX.TX_NAME).coordinate.y;
     }
-    else if(TX.TX_NAME[0] == 'R') {
-        x = allZone.getRegion(TX.TX_NAME).vertices[0].x;
-        y = allZone.getRegion(TX.TX_NAME).vertices[0].y;
-    }
-    x += TX.TX_COORD.x / 2000;
-    y += TX.TX_COORD.y / 2000;
-    x = std::ceil(x * 1000.0) / 1000.0;
-    y = std::ceil(y * 1000.0) / 1000.0;
+    x += TX.TX_COORD.x;
+    y += TX.TX_COORD.y;
     struct TX newTX;
     newTX.TX_COORD = Point(x, y);
     newTX.TX_NAME = TX.TX_NAME;
@@ -220,19 +300,13 @@ struct TX Net::absoluteTX(AllZone const &allZone) const {
 }
 
 struct RX Net::absoluteRX(RX const &rx, AllZone const &allZone) const {
-    double x, y;
+    double x = 0, y = 0;
     if(rx.RX_NAME[0] == 'B') {
         x = allZone.getBlock(rx.RX_NAME).coordinate.x;
         y = allZone.getBlock(rx.RX_NAME).coordinate.y;
     }
-    else if(rx.RX_NAME[0] == 'R') {
-        x = allZone.getRegion(rx.RX_NAME).vertices[0].x;
-        y = allZone.getRegion(rx.RX_NAME).vertices[0].y;
-    }
-    x += rx.RX_COORD.x / 2000;
-    y += rx.RX_COORD.y / 2000;
-    x = std::ceil(x * 1000.0) / 1000.0;
-    y = std::ceil(y * 1000.0) / 1000.0;
+    x += rx.RX_COORD.x;
+    y += rx.RX_COORD.y;
     struct RX newRX;
     newRX.RX_COORD = Point(x, y);
     newRX.RX_NAME = rx.RX_NAME;

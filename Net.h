@@ -56,6 +56,7 @@ public:
 	struct RX absoluteRX(RX const &rx, AllZone const &allZone) const;
 
 	void readFile(int const &testCase);
+	void ParserAllNets(int const &testCase);
 	Net getNet(int const &ID) const;
 	void showNetInfo();
 };

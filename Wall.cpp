@@ -6,6 +6,15 @@ Wall::Wall(bool IsVertical, double Fixed, double Range[2], string Name) : isVert
 	this->name = Name;
 }
 
+
+Wall::Wall(bool IsVertical, double Fixed, double Range1, double Range2, string name){
+	isVertical = IsVertical;
+	fixedCoord = Fixed;
+	rangeCoord[0] = Range1;
+	rangeCoord[1] = Range2;
+	this->name = name;
+}
+
 Point inOrder(double a, double b){
 	double small = min(a, b);
 	double big = max(a, b);

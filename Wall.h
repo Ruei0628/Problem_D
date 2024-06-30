@@ -11,6 +11,7 @@ class Wall : public Block{
 public:
 	Wall(){}
 	Wall(bool, double, double[2], string);
+	Wall(bool, double, double, double, string);
 
 	bool isVertical; // 0: horizontal, 1: vertical
 	double fixedCoord;

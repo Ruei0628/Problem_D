@@ -1,62 +1,42 @@
 #include "Probe.h"
 #include <cmath>
+#include <stdexcept>
 
-Probe::Probe(Point coord, string zoneName, bool directionX, int level, Probe *parent = nullptr){
-	this->coord = coord;
-	this->zoneName = zoneName;
-	this->directionX = directionX;
-	this->level = level;
-	this->parentProbe = parent;
+Probe::Probe(Point coord, std::string zoneName, bool directionX, int level, Probe* parent)
+    : coord(coord), zoneName(zoneName), directionX(directionX), level(level), parentProbe(parent) {}
+
+Probe *Probe::extendedProbe(double dx, double dy, int lv) {
+    Point newPoint(coord.x + dx, coord.y + dy);
+    return new Probe(newPoint, zoneName, !directionX, lv, this);
 }
 
-Probe Probe::extendedProbe(double dx, double dy, int lv) const {
-	Point newPoint(coord.x + dx, coord.y + dy);
-	return Probe(newPoint, zoneName, !directionX, lv, const_cast<Probe*>(this));
+bool Probe::hitWall(const std::vector<Wall>& walls) const {
+    for(const Wall& w : walls) {
+        if (zoneName == w.name) continue;
+        if (!directionX && w.isVertical) {
+            if(coord.x == w.fixedCoord && w.inRange(coord.y)) {
+                return true;
+            }
+        }
+        if (directionX && !w.isVertical) {
+            if(coord.y == w.fixedCoord && w.inRange(coord.x)) {
+                return true;
+            }
+        }
+    }
+    const double boundaryL = 0.0;
+    const double boundaryR = 66.0;
+    const double boundaryD = 0.0;
+    const double boundaryU = 31.0;
+    if (coord.x >= boundaryR || coord.x <= boundaryL || coord.y >= boundaryU || coord.y <= boundaryD) {
+        return true;
+    }
+    return false;
 }
-bool Probe::hitWall(vector<Wall> const &walls) const {
-	// cout << coord.x << ", " << coord.y << ", "<<directionX<<"\n";
-	// 兩種情況要停下來
-	// 1. 碰到不是自己來源的 non-feedthroughable block
-	// (自己來源的意思是，如果是 source 的話就是 RX 的那個 block 或 region)
-	// (如果是 target 的話就是 TX 的那個 block 或 region)
-	for(Wall const &w : walls) {
-		// 如果是起點而且碰到起點 zone 的牆壁則忽略
-		if (zoneName == w.name) continue;
-		// 走橫向的 probes 碰到垂直的牆壁
-		if (!directionX && w.isVertical){
-			// 好像就不用判斷說是往右還是往左
-			if(coord.x == w.fixedCoord && w.inRange(coord.y)){
-				//cout << "hit wall" << endl;
-				return 1;
-			}
-		}
-		// 走縱向的 probes 碰到水平的牆壁
-		if (directionX && !w.isVertical){
-			// 好像就不用判斷說是往上還是往下
-			if(coord.y == w.fixedCoord && w.inRange(coord.x)){
-				//cout << "hit wall" << endl;
-				return 1;
-			}
-		}
-	}
-	// 2. 碰到 chip 邊界
-	const double boundaryL = 0.000;
-	const double boundaryR = 6220.068;
-	const double boundaryD = 0.000;
-	const double boundaryU = 5184.36;
-	if ((coord.x >= boundaryR || coord.x <= boundaryL)){
-		//cout << "hit boundary" << endl;
-		return 1;
-	}
-	if ((coord.y >= boundaryU || coord.y <= boundaryD)){
-		//cout << "hit boundary" << endl;
-		return 1;
-	}
-	return 0;
-}
-bool Probe::alreadyExist (vector<Probe> const &oldProbes){
-	for (Probe const &p : oldProbes){
-		if (coord == p.coord) return 1;
-	}
-	return 0;
+
+bool Probe::alreadyExist(vector<Probe*> const &oldProbes) const {
+    for (Probe *p : oldProbes) {
+        if (coord == p->coord) return true;
+    }
+    return false;
 }
