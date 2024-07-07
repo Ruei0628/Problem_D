@@ -1,4 +1,8 @@
 #include "Block.h"
+#include <sstream>
+#include <vector>
+
+Point BORDER;
 
 Block::Block() {}
 
@@ -23,13 +27,19 @@ void Block::expandVertices() {
 	vertices.push_back(tempVertice);
 }
 
-void Block::facingAndFlip(vector<Point> &vertices) {
+void facingAndFlip(vector<Point> &vertices, string facingFlip) {
 	char flip = facingFlip[0];
 	char facing = facingFlip[1];
 
 	vector<Point> tempVertices;
 	tempVertices = vertices;
 	vertices.clear();
+
+	Point min(BORDER.x, BORDER.y);
+	for (Point &vertex : tempVertices) {
+		if (vertex.x < min.x) min.x = vertex.x;
+		if (vertex.y < min.y) min.y = vertex.y;
+	}
 
 	// facing
 	for (Point &vertex : tempVertices) {
@@ -60,22 +70,21 @@ void Block::facingAndFlip(vector<Point> &vertices) {
 		}
 	}
 
-	// shift to nonnegative
-	double minX = 6221;
-	double minY = 5185;
+	// shift to original min
+	Point newMin(BORDER.x, BORDER.y);
 	for (Point &vertex : vertices) {
-		if (vertex.x < minX)
-			minX = vertex.x;
-		if (vertex.y < minY)
-			minY = vertex.y;
+		if (vertex.x < newMin.x) newMin.x = vertex.x;
+		if (vertex.y < newMin.y) newMin.y = vertex.y;
 	}
+	min.x -= newMin.x;
+	min.y -= newMin.y;
 	for (Point &vertex : vertices) {
-		vertex.x -= minX;
-		vertex.y -= minY;
+		vertex.x += min.x;
+		vertex.y += min.y;
 	}
 }
 
-void Block::shiftCoordinate(vector<Point> &vertices) {
+void shiftCoordinate(vector<Point> &vertices, Point coordinate) {
 	for (Point &vertex : vertices) {
 		vertex.x += coordinate.x;
 		vertex.y += coordinate.y;
@@ -84,29 +93,28 @@ void Block::shiftCoordinate(vector<Point> &vertices) {
 
 void Block::showBlockInfo() {
 	cout << "blockName: '" << name << "'" << endl
-		   << "blkID: '" << blkID << "'" << endl
-		   << "coordinate: (" << coordinate.x << ", " << coordinate.y
-		   << ") " << endl
-		   << "facingFlip: '" << facingFlip << "'" << endl;
+	<< "blkID: '" << blkID << "'" << endl
+	<< "coordinate: (" << coordinate.x << ", " << coordinate.y
+	<< ") " << endl
+	<< "facingFlip: '" << facingFlip << "'" << endl;
 	cout << "vertices: " << endl;
 	for (auto v : vertices) {
-		cout << "(" << v.x << ", " << v.y << ")\n";
+		cout<< v.x << " " << v.y << "\n";
 	}
 	cout << "through_block_net_num: " << through_block_net_num << endl
-		   << "through_block_edge_net_num: ";
-	if (through_block_edge_net_num.net_num != -1) {
-		cout << "(" << through_block_edge_net_num.blockEdge[0].x << ", "
-			 << through_block_edge_net_num.blockEdge[0].y << ") ("
-			 << through_block_edge_net_num.blockEdge[1].x << ", "
-			 << through_block_edge_net_num.blockEdge[2].y << ") "
-			 << through_block_edge_net_num.net_num;
+	<< "through_block_edge_net_num: ";
+	for (BlockEdgeAndNum const &TBENN : through_block_edge_net_num) {
+		cout << endl << "(" << TBENN.edge[0].x << ", "
+		<< TBENN.edge[0].y << ") ("
+		<< TBENN.edge[1].x << ", "
+		<< TBENN.edge[1].y << ") "
+		<< TBENN.net_num;
 	}
 	cout << endl;
 	cout << "block_port_region: ";
-	if (block_port_region.size()) {
-		cout << "(" << block_port_region[0].x << ", "
-			 << block_port_region[0].y << ") (" << block_port_region[1].x
-			 << ", " << block_port_region[1].y << ")";
+	for (vector<Point> const &BPR : block_port_region) {
+		cout << endl << "(" << BPR[0].x << ", " << BPR[0].y
+		<< ") (" << BPR[1].x << ", " << BPR[1].y << ")";
 	}
 	cout << endl
 		   << "is_feedthroughable: " << is_feedthroughable << endl
@@ -127,7 +135,36 @@ void Block::ParserAllBlocks(int const &testCase) {
 	smatch m;
 	string getFaceFlip;
 
+	int lineNumber = 0;
+	int componentNumber = 1;
+	int componentNumberCount = 0;
+
 	while (getline(file_chip_top, line)) {
+		lineNumber++;
+		string temp;
+
+		// get UNITS DISTANCE MICRONS
+		if (lineNumber == 7) {
+			istringstream iss(line);
+			iss >> temp >> temp >> temp >> UNITS_DISTANCE_MICRONS;
+		}
+
+		// get borders
+		if (lineNumber == 8) {
+			istringstream iss(line);
+			iss >> temp >> temp >> temp >> temp >> temp >> temp >> border_X >> border_Y;
+			border_X /= UNITS_DISTANCE_MICRONS;
+			border_Y /= UNITS_DISTANCE_MICRONS;
+			BORDER.x = border_X;
+			BORDER.y = border_Y;
+		}
+
+		// get component number
+		if (lineNumber == 10) {
+			istringstream iss(line);
+			iss >> temp >> componentNumber;
+		}
+
 		Block tempBlock;
 		if (line.find(startWith) == 0) {
 			// blockName
@@ -147,20 +184,28 @@ void Block::ParserAllBlocks(int const &testCase) {
 						tempBlock.through_block_net_num = block["through_block_net_num"].GetInt();
 						tempBlock.is_feedthroughable = block["is_feedthroughable"].GetString() == string("True");
 						tempBlock.is_tile = block["is_tile"].GetString() == string("True");
-					}
 
-					// through_block_edge_net_num
-					const Value &TBENN = block["through_block_edge_net_num"];
-					if (TBENN.Size()) {
-						tempBlock.through_block_edge_net_num.blockEdge[0] = Point(TBENN[0][0].GetDouble(), TBENN[0][1].GetDouble());
-						tempBlock.through_block_edge_net_num.blockEdge[1] = Point(TBENN[1][0].GetDouble(), TBENN[1][1].GetDouble());
-						tempBlock.through_block_edge_net_num.net_num = TBENN[2].GetInt();
-					}
-					// block_port_region
-					const Value &BPR = block["block_port_region"];
-					if (BPR.Size()) {
-						tempBlock.block_port_region.push_back(Point(BPR[0][0].GetDouble(), BPR[0][1].GetDouble()));
-						tempBlock.block_port_region.push_back(Point(BPR[1][0].GetDouble(), BPR[1][1].GetDouble()));
+						// through_block_edge_net_num
+						const Value &TBENN = block["through_block_edge_net_num"];
+						for (const auto &singleTBENN : TBENN.GetArray()) {
+							BlockEdgeAndNum tempOne;
+    						if (singleTBENN.Size() == 3 && singleTBENN[0].IsArray() && singleTBENN[1].IsArray()) {
+    						    tempOne.edge.push_back(Point(singleTBENN[0][0].GetDouble(), singleTBENN[0][1].GetDouble()));
+    						    tempOne.edge.push_back(Point(singleTBENN[1][0].GetDouble(), singleTBENN[1][1].GetDouble()));
+    						    tempOne.net_num = singleTBENN[2].GetInt();
+    						    tempBlock.through_block_edge_net_num.push_back(tempOne);
+    						}
+						}
+
+						// block_port_region
+						const Value &BPR = block["block_port_region"];
+						for (auto const &thing : BPR.GetArray()) {
+							vector<Point> tempOne;
+							tempOne.push_back(Point(thing.GetArray()[0][0].GetDouble(), thing.GetArray()[0][1].GetDouble()));
+							tempOne.push_back(Point(thing.GetArray()[1][0].GetDouble(), thing.GetArray()[1][1].GetDouble()));
+							tempBlock.block_port_region.push_back(tempOne);
+						}
+						break;
 					}
 				}
 				file_cfg.close();
@@ -186,37 +231,51 @@ void Block::ParserAllBlocks(int const &testCase) {
 					smatch match = *iter;
 					double x = stod(match[1].str());
 					double y = stod(match[2].str());
-					x /= 2000;
-					y /= 2000;
+					x /= UNITS_DISTANCE_MICRONS;
+					y /= UNITS_DISTANCE_MICRONS;
 					tempBlock.vertices.push_back(Point(x, y));
 					++iter;
 				}
-				if (tempBlock.vertices.size() == 2)
-					tempBlock.expandVertices();
+				if (tempBlock.vertices.size() == 2) tempBlock.expandVertices();
 			}
 
 			// getCoordinate
 			if (regex_search(line, m, getCoordinate) && m.size() == 3) {
 				double x = stod(m[1]);
 				double y = stod(m[2]);
-				x /= 2000;
-				y /= 2000;
+				x /= UNITS_DISTANCE_MICRONS;
+				y /= UNITS_DISTANCE_MICRONS;
 				tempBlock.coordinate = Point(x, y);
 			}
 
 			// getFacingFlip
 			tempBlock.facingFlip = line.substr(line.length() - 4, 2);	
 			// do facingAndFlip
-			tempBlock.facingAndFlip(tempBlock.vertices);
-			tempBlock.facingAndFlip(tempBlock.through_block_edge_net_num.blockEdge);
-			tempBlock.facingAndFlip(tempBlock.block_port_region);	
+			facingAndFlip(tempBlock.vertices, tempBlock.facingFlip);
+			
+			for (BlockEdgeAndNum &TBENN : tempBlock.through_block_edge_net_num) {
+				facingAndFlip(TBENN.edge, tempBlock.facingFlip);
+			}
+			for (vector<Point> &BPR : tempBlock.block_port_region) {
+				facingAndFlip(BPR, tempBlock.facingFlip);
+			}
+			
 			// do shiftCoordinate
-			tempBlock.shiftCoordinate(tempBlock.vertices);
-			tempBlock.shiftCoordinate(tempBlock.through_block_edge_net_num.blockEdge);
-			tempBlock.shiftCoordinate(tempBlock.block_port_region);	
-			// read into totBLOCK
+			shiftCoordinate(tempBlock.vertices, tempBlock.coordinate);
+			
+			for (BlockEdgeAndNum &TBENN : tempBlock.through_block_edge_net_num) {
+				shiftCoordinate(TBENN.edge, tempBlock.coordinate);
+			}
+			for (vector<Point> &BPR : tempBlock.block_port_region) {
+				shiftCoordinate(BPR, tempBlock.coordinate);
+			}
+			
+			// write into totBLOCK
 			this->allBlocks.push_back(tempBlock);
+
+			componentNumberCount++;
 		}
+		if (componentNumberCount == componentNumber) break;
 	}
 	file_chip_top.close();
 }

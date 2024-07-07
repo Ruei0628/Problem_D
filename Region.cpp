@@ -36,7 +36,20 @@ void Region::ParserAllRegions(int const &testCase) {
 	regex getRegionName(R"(REGION_\d+)");
 	regex getVertices(R"(\(\s*([\d.]+)\s+([\d.]+)\s*\))");
 	smatch m;
+
+	int lineNumber = 0;
+	int UNITS_DISTANCE_MICRONS;
+
 	while (getline(file, line)) {
+		lineNumber++;
+
+		// get UNITS DISTANCE MICRONS
+		if (lineNumber == 7) {
+			istringstream iss(line);
+			string temp;
+			iss >> temp >> temp >> temp >> UNITS_DISTANCE_MICRONS;
+		}
+
 		Region tempRegion;
 		if (line.find(startWith) == 0) {
 			// regionName
@@ -50,7 +63,7 @@ void Region::ParserAllRegions(int const &testCase) {
 				smatch match = *iter;
 				double x = stod(match[1].str());
 				double y = stod(match[2].str());
-				tempRegion.vertices.push_back(Point(x / 2000, y / 2000));
+				tempRegion.vertices.push_back(Point(x / UNITS_DISTANCE_MICRONS, y / UNITS_DISTANCE_MICRONS));
 				++iter;
 			}
 			tempRegion.expandVertices();

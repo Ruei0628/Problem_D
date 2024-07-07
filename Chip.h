@@ -10,15 +10,17 @@ using namespace std;
 
 class Chip : public Zone {
 public:
-  Chip(int const &testCase);
-  vector<Zone *> totZone;
+	Chip(int const &testCase);
+	vector<Zone *> totZone;
 
-  Wall Walls;
-
-  void showAllZones();
-  Block getBlock(string) const;
-  Region getRegion(string) const;
-  ~Chip();
+	double border_X;
+	double border_Y;
+	
+	Wall Walls;	
+	void showAllZones();
+	Block getBlock(string) const;
+	Region getRegion(string) const;
+	~Chip();
 };
 
 #endif // CHIP_H_INCLUDED

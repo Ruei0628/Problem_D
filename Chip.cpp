@@ -9,6 +9,9 @@ Chip::Chip(int const &testCase) {
 
 	Blocks.ParserAllBlocks(testCase);
 	Regions.ParserAllRegions(testCase);
+
+	border_X = Blocks.border_X;
+	border_Y = Blocks.border_Y;
 		
 	for (Block b : Blocks.allBlocks) {
 		//Walls.getBlockVertices(b);
@@ -86,9 +89,11 @@ Region Chip::getRegion(string regionName) const {
 void Chip::showAllZones() {
 	for (Zone *z : totZone) {
 		if (Block *bPtr = dynamic_cast<Block *>(z)) {
-			bPtr->showBlockInfo();
+			if ((bPtr->through_block_edge_net_num.size() || bPtr->block_port_region.size())) {
+				bPtr->showBlockInfo();
+			}
 		} else if (Region *rPtr = dynamic_cast<Region *>(z)) {
-			rPtr->showRegionInfo();
+			//rPtr->showRegionInfo();
 		}
 	}
 }

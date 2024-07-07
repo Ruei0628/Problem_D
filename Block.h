@@ -16,8 +16,8 @@ using namespace std;
 using namespace rapidjson;
 
 struct BlockEdgeAndNum {
-	vector<Point> blockEdge;
-	int net_num = -1;
+	vector<Point> edge;
+	int net_num;
 };
 
 class Block : public Zone {
@@ -29,17 +29,19 @@ public:
 	string facingFlip;
 
 	int through_block_net_num;
-	BlockEdgeAndNum through_block_edge_net_num;
-	vector<Point> block_port_region;
+	vector<BlockEdgeAndNum> through_block_edge_net_num;
+	vector<vector<Point>> block_port_region;
 	bool is_feedthroughable;
 	bool is_tile;
+
+	int UNITS_DISTANCE_MICRONS;
+	double border_X;
+	double border_Y;
 
 	vector<Block> allBlocks;
 
 	void ParserAllBlocks(int const &case_serial_number);
 	void expandVertices();
-	void facingAndFlip(vector<Point> &vertices);
-	void shiftCoordinate(vector<Point> &vertices);
 	void showBlockInfo();
 };
 

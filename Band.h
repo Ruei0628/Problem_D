@@ -6,8 +6,8 @@
 class Band {
 public: 
 	Band(){}
-	Band(bool, string, bool, double, double, double, double, Band*);
-	bool containTerminal;
+	Band(string, bool, double, double, double, double, Band*);
+	Band(string, bool, Point);
 	string zoneName = "";
 
 	Band *parent = nullptr;
@@ -20,10 +20,11 @@ public:
 	vector<Band> toExtendPaths;
 
 	// member fuctions
-	Band extendedBand(double dx, double dy, int lv);
-	bool detectWall(Wall const allWall) const;
-	bool intersected(Band const &other) const;
+	Band *extendedBand(double dx, double dy, int lv);
+	pair<double, double> detectWall(vector<Wall> const walls, Point coord, bool direction_isX) const;
+	bool intersected(Band const *other) const;
 	bool operator ==(Band const &other) const;
+	bool alreadyExist(vector<Band*> bands);
 };
 
 #endif // BAND_H_INCLUDED
