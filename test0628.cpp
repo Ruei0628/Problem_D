@@ -1,22 +1,12 @@
 #include "Net.h"
 
-class test {
-public:
-	test(int a, int b) : a(a), b(b) {
-	}
-	int a = 5;
-	int b = 5;
-};
-
 int main () {
 	Chip chip(0);
 	Net net;
-	net.ParserAllNets(0, chip);
-	for (Net const &n : net.allNets) {
-		if (n.HMFT_MUST_THROUGHs.size() || n.MUST_THROUGHs.size()) {
-			n.showNetInfo();
-		}
-	}
+	//net.ParserAllNets(0, chip);
+	chip.showAllZones();
 	cout << "done.";
 	return 0;
 }
+
+// cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ test0628.cpp Chip.cpp Block.cpp Net.cpp Region.cpp -o test0628} ; if ($?) { .\test0628 }

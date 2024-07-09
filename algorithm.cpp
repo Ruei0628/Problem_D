@@ -5,27 +5,9 @@ constexpr double DX = 0.5;
 constexpr double DY = 0.5;
 
 bool checkIfIntersect(Band *sourceBandsBackTrace, Band *targetBandsBackTrace, 
-					  vector<Band*> &CSB, vector<Band*> &OSB, vector<Band*> &CTB, vector<Band*> &OTB) {
-	for (Band *s : CSB) { 
-		for (Band *t : CTB) { 
-			if (s->intersected(t)) {
-				// which means path is found
-				sourceBandsBackTrace = s;
-				targetBandsBackTrace = t;
-				return 1;
-			}	
-		}
-		for (Band *t : OTB) {
-			if (s->intersected(t)) {
-			 	// which means path is found
-				sourceBandsBackTrace = s;
-				targetBandsBackTrace = t;
-			 	return 1;
-			}
-		}
-	}
-	for (Band *t : CTB) {
-		for (Band *s : OSB) {
+					  vector<Band*> &compairer, vector<Band*> &compairee) {
+	for (Band *t : compairer) {
+		for (Band *s : compairee) {
 			if (s->intersected(t)) {
 				// which means path is found
 				sourceBandsBackTrace = s;
@@ -37,30 +19,36 @@ bool checkIfIntersect(Band *sourceBandsBackTrace, Band *targetBandsBackTrace,
 	return 0;
 }
 
-void mikami(TX const &source, RX const &target, Chip const &chip, vector<Band*> recordPath){
+void mikami(Net &net, Chip const &chip, vector<Band*> recordPath){
 	cout << "Start mikami!" << endl;
 
 	//step 1: initializaiotn
+	Terminal source = net.TX;
+	Terminal target = net.RXs[0]; // 待處理
+
 	vector<Band*> CSB; // stands for current source bands
 	vector<Band*> OSB; // stands for old source bands
 	vector<Band*> CTB; // stands for current target bands
 	vector<Band*> OTB; // stands for old target bands
 
 	// 把 TX 跟 RX 改成 Bands
-	CSB.push_back(new Band(source.TX_NAME, 1, source.TX_COORD));
-	CSB.push_back(new Band(source.TX_NAME, 0, source.TX_COORD));
-	CTB.push_back(new Band(target.RX_NAME, 1, target.RX_COORD));
-	CTB.push_back(new Band(target.RX_NAME, 0, target.RX_COORD));
+	CSB.push_back(new Band(source, 1));
+	CSB.push_back(new Band(source, 0));
+	CTB.push_back(new Band(target, 1));
+	CTB.push_back(new Band(target, 0));
 
-	vector<Wall> const walls = chip.Walls.allWalls;
+	vector<Edge> const edges = chip.Edges.allEdges;
 
 	Band* sourceBandsBackTrace = nullptr;
 	Band* targetBandsBackTrace = nullptr;
+
 	cout << "step 1 complete\n";
 
 	while (1) {
 		// step 2: check if intersect
-		if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, CSB, OSB, CTB, OTB)) break;
+		if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, CSB, CTB)) break;
+		if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, CSB, OTB)) break;
+		if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, CTB, OSB)) break;
 
 		cout << "step 2 complete\n";
 		
@@ -71,7 +59,6 @@ void mikami(TX const &source, RX const &target, Chip const &chip, vector<Band*> 
 
 		// current 的資料應該不能刪掉，因為還要 extend
 		// 只是在這之後(、被清除之前)調用 current bands 應該只能 const *
-
 		cout << "step 3 complete\n";
 
 		// step 4. 生成與 current bands 垂直的 extendedProbes，並先把他們暫存在一個 vector 裡面
@@ -80,20 +67,20 @@ void mikami(TX const &source, RX const &target, Chip const &chip, vector<Band*> 
 		vector<Band*> ETB; // stands for extended target bands
 		// 這些生成出來的 bands 的 level 要 +1
 
-		for (Band *p : CSB) { // 來自 source
-			double dx = p->toExtend_isX * DX;
-			double dy = !(p->toExtend_isX) * DY;
+		for (Band *b : CSB) { // 來自 source
+			double dx = b->toExtend_isX * DX;
+			double dy = !(b->toExtend_isX) * DY;
 			double X = dx, Y = dy;
-			int levelCSP = p->level;
+			int levelCSP = b->level;
 			//cout << "source directionX: " << p.directionX << endl;
 			// 往兩個方向生成新的 Band
 			// 正方向
 			while (1) {
-				Band *positiveProbe = p->extendedBand(X, Y, levelCSP + 1);
+				Band *positiveProbe = b->extendedBand(X, Y, levelCSP + 1);
 				//cout << "positiveProbe: " << positiveProbe.coord.x << ", " << positiveProbe.coord.y << endl;
 				// 如果這個 Band 會撞到牆，直接結束這個方向的 extend
-				if (positiveProbe->detectWall(walls)) {
-				 	// cout << "EPSP hit wall!" << endl;
+				if (positiveProbe->detectEdge(edges)) {
+				 	// cout << "EPSP hit edge!" << endl;
 				 	break;
 				}
 				X += dx;
@@ -109,11 +96,11 @@ void mikami(TX const &source, RX const &target, Chip const &chip, vector<Band*> 
 			X = dx;
 			Y = dy;
 			while (1) {
-				Band *negativeProbe = p->extendedBand(-X, -Y, levelCSP + 1);
+				Band *negativeProbe = b->extendedBand(-X, -Y, levelCSP + 1);
 				//cout << "negativeProbe: " << negativeProbe.coord.x << ", " << negativeProbe.coord.y << endl;
 				// 如果這個 Band 會撞到牆，直接結束這個方向的 extend
-				if (negativeProbe->detectWall(walls)) {
-				 	// cout << "ENSP hit wall!" << endl;
+				if (negativeProbe->detectEdge(edges)) {
+				 	// cout << "ENSP hit edge!" << endl;
 				 	break;
 				}
 				X += dx;
@@ -127,7 +114,7 @@ void mikami(TX const &source, RX const &target, Chip const &chip, vector<Band*> 
 			// cout << "ENSP done!" << endl;
 		}
 
-		for (Band const *p : CTB) { // 來自 target
+		for (Band *b : CTB) { // 來自 target
 		 	// 第一步先檢查他的direction是x還是y
 			// 然後才能知道他的min跟max end是要看x還是y
 			// 接下來，從min_end在direction的方向，每隔一段距離toExtend找牆壁
@@ -176,7 +163,7 @@ void mikami(TX const &source, RX const &target, Chip const &chip, vector<Band*> 
     } else {
         cout << "Path:" << endl;
         for (Band const *p : path) {
-			cout << p->min_X << ", " << p->min_Y << endl;
+			cout << p->min.x << ", " << p->min.y << endl;
 		} 
     }
 }

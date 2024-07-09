@@ -2,12 +2,13 @@
 #define BAND_H_INCLUDED
 
 #include "Chip.h"
+#include "Net.h"
 
 class Band {
 public: 
 	Band(){}
 	Band(string, bool, double, double, double, double, Band*);
-	Band(string, bool, Point);
+	Band(Terminal, bool);
 	string zoneName = "";
 
 	Band *parent = nullptr;
@@ -15,13 +16,13 @@ public:
 	bool direction_isX;
 	bool toExtend_isX; // oppsite of direction_isX (!direction_isX)
 
-	double min_X, max_X, min_Y, max_Y;
+	Pair x, y;
 
 	vector<Band> toExtendPaths;
 
 	// member fuctions
 	Band *extendedBand(double dx, double dy, int lv);
-	pair<double, double> detectWall(vector<Wall> const walls, Point coord, bool direction_isX) const;
+	Pair detectEdge(vector<Edge> const edges, Point coord, bool direction_isX) const;
 	bool intersected(Band const *other) const;
 	bool operator ==(Band const &other) const;
 	bool alreadyExist(vector<Band*> bands);

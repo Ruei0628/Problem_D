@@ -1,20 +1,27 @@
 #include "Band.h"
 
-Band::Band(string terminalName, bool direction_isX, double min_X, double max_X, double min_Y, double max_Y, Band* parent) 
+Band::Band(string terminalName, bool direction_isX, double min_x, double max_x, double min_y, double max_y, Band* parent) 
 		  : zoneName(terminalName), direction_isX(direction_isX), toExtend_isX(!direction_isX),
-		    min_X(min_X), max_X(max_X), min_Y(min_Y), max_Y(max_Y), parent(parent) {}
+		    x(min_x, min_y), y(max_x, max_y), parent(parent) {}
 
-Band::Band(string terminalName, bool direction_isX, Point coord) 
-		  : zoneName(terminalName), direction_isX(direction_isX), toExtend_isX(!direction_isX),
-		   min_X(coord.x), max_X(coord.x), min_Y(coord.y), max_Y(coord.y), parent(nullptr) {
+Band::Band(Terminal terminal, bool direction_isX) 
+		  : zoneName(terminal.name), direction_isX(direction_isX), toExtend_isX(!direction_isX), parent(nullptr) {
 	if (direction_isX) {
-		
+		Pair limit = this->detectEdge(edges, terminal.coord, direction_isX);
+		x.min = limit.min;
+		x.max = limit.max;
+		y.min = y.max = terminal.coord.y;
+	} else {
+		Pair limit = this->detectEdge(edges, terminal.coord, direction_isX);
+		y.min = limit.min;
+		y.max = limit.max;
+		x.min = x.max = terminal.coord.x;
 	}
 }
 
-pair<double, double> Band::detectWall(vector<Wall> const walls, Point coord, bool direction_isX) const {
+Pair Band::detectEdge(vector<Edge> const edges, Point coord, bool direction_isX) const {
 	double min = 0, max = 0;
-	for (Wall const &w : walls) {
+	for (Edge const &w : edges) {
 		if (direction_isX && w.isVertical && w.inRange(coord.y)) {
 			if (w.fixedCoord > coord.x) {
 				max = w.fixedCoord;
@@ -30,17 +37,17 @@ pair<double, double> Band::detectWall(vector<Wall> const walls, Point coord, boo
 			min = w.fixedCoord;
 		}
 	}
-	return make_pair(min, max);
+	return Pair(min, max);
 }
 
 bool Band::intersected(Band const *other) const{
-	bool x_intersect = (min_X < other->min_X && other->min_X < max_X) || (other->min_X < min_X && min_X < other->max_X);
-	bool y_intersect = (min_Y < other->min_Y && other->min_Y < max_Y) || (other->min_Y < min_Y && min_Y < other->max_Y);
+	bool x_intersect = !(x.min > other->x.max || x.max < other->x.min);
+	bool y_intersect = !(y.min > other->y.max || y.max < other->y.min);
 	return x_intersect && y_intersect;
 }
 
 bool Band::operator ==(Band const &other) const {
-	return min_X == other.min_X && max_X == other.max_X && min_Y == other.min_Y && max_Y == other.max_Y;
+	return x.min == other.x.min && x.max == other.x.max && y.min == other.y.min && y.max == other.y.max;
 }
 
 bool Band::alreadyExist(vector<Band*> bands) {

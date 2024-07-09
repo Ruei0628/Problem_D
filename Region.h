@@ -2,27 +2,16 @@
 #define REGION_H_INCLUDED
 
 #include "Zone.h"
-#include <string>
-#include <utility>
-#include <vector>
-
-#include <fstream>
 #include <iostream>
-#include <regex>
-#include <sstream>
 
 using namespace std;
 
 class Region : public Zone {
 public:
-  Region();
-  Region(Region const &);
-
-  vector<Region> allRegions;
-
-  void ParserAllRegions(int const &case_serial_number);
-  void expandVertices();
-  void showRegionInfo();
+	Region();
+	Region(Region const &);
+	
+	void showRegionInfo();
 };
 
 #endif // REGION_H_INCLUDED

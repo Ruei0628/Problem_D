@@ -59,3 +59,140 @@ step3: store current into old
 step4: use current to extend new bands (ESB、ETB)
 	   and exchange the extended and current
 step5: find the path
+
+請利用c++實作一個程式：
+以下是這個程式會用到的一個資料型態：pair
+class Pair {
+public:
+	Pair(){}
+	Pair(double Min, double Max) {
+		// Min should smaller than Max, 
+		// but in case we still check that
+		this->min = std::min(Min, Max);
+		this->max = std::max(Min, Max);
+	}
+	double min,max;
+	void operator =(Pair const &other) {
+		this->min = other.min;
+		this->max = other.max;
+	}
+};
+給定一個pair為target，接下來輸入數個pair為sources，
+當source的範圍有涵蓋到target，則紀錄這個source，並繼續接收sources，直到整個target的範圍被接收完
+如，target為Pair(3.2, 5.7)，sources:
+Pair(11.7, 18.0) //這個不會被紀錄因為他不再target的範圍
+Pair(0.8, 3.3) // 這個會被紀錄，3.3>=3.2
+(因此target目前3.2~3.3這個範圍被涵蓋到了)
+Pair(4.6, 4.7) // 這個也在範圍內，會被紀錄
+(因此，目前target的[3.2, 3.3], [4.6, 4.7]的範圍被涵蓋到了)
+Pair(2.2, 4.62) // 會被紀錄
+Pair(4.69, 5.88) // 會被紀錄
+此時，target的全部範圍已經被涵蓋，則結束程式。
+
+我想要對這個程式做一些小更動
+我想要改成，"只紀錄最先覆蓋的那些sources"，並將這些區間紀錄在 RangeCoverage 裡面
+什麼意思呢?舉個例子
+Pair target(0, 11);
+接下來輸入sources:
+Pair(10, 12) // 區間[10, 11]被紀錄在 RangeCoverage 裡面
+Pair(0, 7) // 區間[0, 7]被紀錄在 RangeCoverage 裡面
+(這裡我們看到，僅剩下[7, 10]這個區間未被紀錄，而接下來就是主要更動的地方)
+Pair(0, 9) // 注意到，[0,7]先前已經被紀錄過，所以這邊幫我只紀錄[7,9]就好(在 RangeCoverage 裡面)
+Pair(7, 9) // 這個source在target的區間內，但先前[0,9]已經紀錄過，因此[7,9]不應被紀錄
+Pair(10,11) // 同理
+Pair(2,3) // 同理
+Pair(4,13) // 這裡將target補齊了，因為只剩下[9,10]未被紀錄，所以[9,10]被紀錄在 RangeCoverage 裡面
+結束程式
+
+讓我們看到這張圖。這張圖代表一個chip上block的分佈
+chip的邊界為最外框為紅色的大長方形。
+block為chip上一些rectilinear形狀的物體，也就是圖中黃色的部分
+block有幾個重要的資訊:
+1. vector<Point> vertices: block的頂點
+2. string name: BLOCK_0, BLOCK_1等等
+3. bool is_feedthroughable: 是否可穿過
+4. int through_block_net_num: 可穿過這個block的net數量(但我們今天的重點不在net)
+5. vector<Edge> edges: block的邊
+edges是我們今天想要討論的
+我想要寫一個vector存取chip 上，所有edges的資料(任何一個block)
+並且我可以修改這個edges的資訊(include some boolean of that edge)，以方便我接下來程式的進行
+(主要是我想要按照他們的fixedCoordinate排序，但這之後再提)
+因此，這個vector將會是以指標的形式存在
+我想要你幫助我完成這個程式
+
+以下是可能你會需要的資訊：
+
+// 0. Zone.h
+
+class Zone {
+public:
+  Zone() {}
+  string name;
+  vector<Point> vertices;
+  virtual ~Zone() {}
+};
+
+// 1. Block.h
+
+struct BlockEdgeAndNum {
+	vector<Point> edge;
+	int net_num;
+};
+class Edge {
+public:
+	Edge(){}
+	Edge(bool, double, Pair, string);
+	Edge(bool isVertical, double fixed, double range_min, double range_max, string blockName);
+
+	bool isVertical; // 0: horizontal, 1: vertical
+	double fixedCoord;
+	Pair rangeCoord;
+
+	void getBlockVertices(Block const &block);
+	void rearrangement();
+	bool inRange(double const &value) const;
+
+	// 註: 我還沒有完全確定Edge的結構要包含哪些東西
+};
+class Block : public Zone {
+public:
+	Block();
+	Block(Block const &);
+	string blkID;
+	Point coordinate;
+	string facingFlip;
+
+	int through_block_net_num;
+	vector<BlockEdgeAndNum> through_block_edge_net_num;
+	vector<vector<Point>> block_port_region;
+	bool is_feedthroughable;
+	bool is_tile;
+	vector<Edge> edges;
+
+	int UNITS_DISTANCE_MICRONS;
+	double border_X;
+	double border_Y;
+
+	vector<Block> allBlocks;
+
+	void ParserAllBlocks(int const &testCase);
+	void expandVertices();
+	void showBlockInfo();
+};
+
+// 2. Chip.h
+
+class Chip : public Zone {
+public:
+	Chip(int const &testCase);
+	vector<Zone *> totZone;
+
+	double border_X;
+	double border_Y;
+	
+	Edge edges;	
+	void showAllZones();
+	Block getBlock(string) const;
+	Region getRegion(string) const;
+	~Chip();
+};
