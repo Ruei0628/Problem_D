@@ -107,57 +107,6 @@ public:
         }
     }
 };
-class Band {
-public: 
-    Pair direction, extended;
-    
-    Band(Pair dir, Pair ext) : direction(dir), extended(ext) {}
-};
-
-vector<Band> mergeCoveredRanges(const vector<CoveredRange>& left, const vector<CoveredRange>& right) {
-    vector<Band> result;
-    vector<double> splitPoints;
-    
-    // Collect all split points
-    for (const auto& range : left) {
-        splitPoints.push_back(range.range.min);
-        splitPoints.push_back(range.range.max);
-    }
-    for (const auto& range : right) {
-        splitPoints.push_back(range.range.min);
-        splitPoints.push_back(range.range.max);
-    }
-    
-    // Sort and remove duplicates
-    sort(splitPoints.begin(), splitPoints.end());
-    splitPoints.erase(unique(splitPoints.begin(), splitPoints.end()), splitPoints.end());
-    
-    // Function to find parameter at a given point
-    auto findParameter = [](const vector<CoveredRange>& ranges, double point) -> double {
-        auto it = lower_bound(ranges.begin(), ranges.end(), point,
-            [](const CoveredRange& cr, double p) { return cr.range.max <= p; });
-        return (it != ranges.end() && it->range.min <= point) ? it->parameter : -1;
-    };
-    
-    // Create bands
-    for (size_t i = 0; i < splitPoints.size() - 1; ++i) {
-        double leftParam = findParameter(left, splitPoints[i]);
-        double rightParam = findParameter(right, splitPoints[i]);
-        
-        if (leftParam != -1 && rightParam != -1) {
-            result.emplace_back(Pair(leftParam, rightParam), Pair(splitPoints[i], splitPoints[i+1]));
-        }
-    }
-    
-    return result;
-}
-
-void printBands(const vector<Band>& bands) {
-    for (const auto& band : bands) {
-        cout << "Direction: [" << band.direction.min << ", " << band.direction.max 
-             << "], Extended: [" << band.extended.min << ", " << band.extended.max << "]" << endl;
-    }
-}
 
 int main() {
     vector<CoveredRange> left = {  

@@ -22,7 +22,7 @@ public:
 	Band *parent = nullptr;
 	int level = 0;
 	bool direction_isX;
-	bool toExtend_isX(); // oppsite of direction_isX (!direction_isX)
+	bool toExtend_isX() { return !direction_isX; }
 
 	Pair x, y;
 	Pair directionPair() { 
@@ -34,12 +34,15 @@ public:
 		else return y;
 	}
 
-	vector<Band> toExtendPaths;
-
 	// member fuctions
-	Band *extendBand(Pair, Pair);
 	Pair directionPair(vector<Edge*> const edges, Point coord) const;
 	bool intersected(Band const *other) const;
+
+	Band *extendBand(Pair, Pair);
+	vector<CoveredRange> generateCoveredRanges(vector<Edge*> &edges, bool right);
+	void addSource(Edge *edge, vector<Pair> &uncovered, vector<CoveredRange> &covered);
+	vector<Band*> mergeCoveredRanges(vector<CoveredRange> const &left, vector<CoveredRange> const &right);
+
 	bool operator ==(Band const &other) const;
 	bool alreadyExist(vector<Band*> bands);
 };

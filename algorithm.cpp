@@ -4,91 +4,19 @@
 constexpr double DX = 0.01;
 constexpr double DY = 0.01;
 
-bool checkIfIntersect(Band *sourceBandsBackTrace, Band *targetBandsBackTrace, 
-					  vector<Band*> &compairer, vector<Band*> &compairee) {
+bool checkIfIntersect(Band *source, Band *target, vector<Band*> &compairer, vector<Band*> &compairee) {
 	for (Band *t : compairer) {
 		for (Band *s : compairee) {
 			if (s->intersected(t)) {
 				// which means path is found
-				sourceBandsBackTrace = s;
-				targetBandsBackTrace = t;
+				source = s;
+				target = t;
 				return 1;
 			}
 		}
 	}
 	return 0;
 }
-
-class RangeCoverage {
-private:
-    Pair target;
-    vector<Pair> uncovered;
-
-public:
-    vector<CoveredRange> covered;
-    vector<double> splitPoints;
-	
-    RangeCoverage(Pair target) : target(target) {
-        uncovered.push_back(target);
-        splitPoints = { target.min, target.max };
-    }
-
-    void addSource(Pair source, double fixed) {
-        if (source.max <= target.min || source.min >= target.max) {
-            return;  // This source is completely outside the target range
-        }
-
-        // Clip the source to the target range
-        source.min = max(source.min, target.min);
-        source.max = min(source.max, target.max);
-
-        vector<Pair> newUncovered;
-        vector<CoveredRange> newCovered;
-
-        for (const auto& uncoveredRange : uncovered) {
-            if (source.min <= uncoveredRange.min && source.max >= uncoveredRange.max) {
-                // This uncovered range is completely covered
-                newCovered.push_back(CoveredRange(uncoveredRange, fixed));
-            } else if (source.max <= uncoveredRange.min || source.min >= uncoveredRange.max) {
-                // This uncovered range is not affected
-                newUncovered.push_back(uncoveredRange);
-            } else {
-                // Partial overlap
-                if (source.min > uncoveredRange.min) {
-                    newUncovered.push_back(Pair(uncoveredRange.min, source.min));
-                }
-                if (source.max < uncoveredRange.max) {
-                    newUncovered.push_back(Pair(source.max, uncoveredRange.max));
-                }
-                newCovered.push_back(CoveredRange(Pair(max(source.min, uncoveredRange.min), min(source.max, uncoveredRange.max)), fixed));
-            }
-        }
-
-        uncovered = newUncovered;
-        for (const auto& range : newCovered) {
-            covered.push_back(range);
-            splitPoints.push_back(range.range.min);
-            splitPoints.push_back(range.range.max);
-        }
-    }
-
-    bool isFullyCovered() const {
-        return uncovered.empty();
-    }
-
-    void sortSplitPoints() {
-        sort(splitPoints.begin(), splitPoints.end());
-        splitPoints.erase(unique(splitPoints.begin(), splitPoints.end()), splitPoints.end());
-
-        for (size_t i = 0; i < splitPoints.size(); ++i) {
-            cout << splitPoints[i];
-            if (i < splitPoints.size() - 1) {
-                cout << ", ";
-            }
-        }
-        cout << endl;
-    }
-};
 
 void mikami(Net &net, Chip &chip, vector<Band*> recordPath){
 	cout << "Start mikami!" << endl;
@@ -139,75 +67,31 @@ void mikami(Net &net, Chip &chip, vector<Band*> recordPath){
 		// 這些生成出來的 bands 的 level 要 +1
 
 		for (Band *b : CSB) { // 來自 source
-			double dx = b->toExtend_isX * DX;
-			double dy = !(b->toExtend_isX) * DY;
-			double X = dx, Y = dy;
-			int levelCSP = b->level;
-			//cout << "source directionX: " << p.directionX << endl;
-			// 往兩個方向生成新的 Band
-			// 正方向
-			while (1) {
-				Band *positiveProbe = b->extendedBand(X, Y, levelCSP + 1);
-				//cout << "positiveProbe: " << positiveProbe.coord.x << ", " << positiveProbe.coord.y << endl;
-				// 如果這個 Band 會撞到牆，直接結束這個方向的 extend
-				if (positiveProbe->detectEdge(edges)) {
-				 	// cout << "EPSP hit edge!" << endl;
-				 	break;
-				}
-				X += dx;
-				Y += dy;
-				// 如果這個 Band 已經存在 OSB 裡面，跳過這個 Band (但還是會繼續執行 extend)
-				if (positiveProbe->alreadyExist(OSB)) continue; // may be time-consuming
-				if (positiveProbe->alreadyExist(CSB)) continue; // may be time-consuming
-				if (positiveProbe->alreadyExist(ESB)) continue; // may be time-consuming
-				ESB.push_back(positiveProbe);
+			vector<CoveredRange> coverageRight = b->generateCoveredRanges(edges, 1);
+			vector<CoveredRange> coverageLeft = b->generateCoveredRanges(edges, 0);
+
+			vector<Band*> tempESB = b->mergeCoveredRanges(coverageLeft, coverageRight);
+			vector<Band*> ESB;
+			for (Band *esb : tempESB) {
+				if (esb->alreadyExist(OSB)) continue;
+				if (esb->alreadyExist(CSB)) continue;
+				if (esb->alreadyExist(ESB)) continue;
+				ETB.push_back(esb);
 			}
-			// cout << "EPSP done!" << endl;
-			// 負方向
-			X = dx;
-			Y = dy;
-			while (1) {
-				Band *negativeProbe = b->extendedBand(-X, -Y, levelCSP + 1);
-				//cout << "negativeProbe: " << negativeProbe.coord.x << ", " << negativeProbe.coord.y << endl;
-				// 如果這個 Band 會撞到牆，直接結束這個方向的 extend
-				if (negativeProbe->detectEdge(edges)) {
-				 	// cout << "ENSP hit edge!" << endl;
-				 	break;
-				}
-				X += dx;
-				Y += dy;
-				// 如果這個 Band 已經存在 OSB 裡面，跳過這個 Band (但還是會繼續執行 extend)
-				if (negativeProbe->alreadyExist(OSB)) continue; // may be time-consuming
-				if (negativeProbe->alreadyExist(CSB)) continue; // may be time-consuming
-				if (negativeProbe->alreadyExist(ESB)) continue; // may be time-consuming
-				ESB.push_back(negativeProbe);
-			}
-			// cout << "ENSP done!" << endl;
 		}
 
 		for (Band *b : CTB) { // 來自 target
-			Pair goalPair = b->directionPair();
-			RangeCoverage coverageRight(goalPair);
-			RangeCoverage coverageLeft(goalPair);
+			vector<CoveredRange> coverageRight = b->generateCoveredRanges(edges, 1);
+			vector<CoveredRange> coverageLeft = b->generateCoveredRanges(edges, 0);
 
-			// 正向搜尋(右手邊)
-			for (Edge *e : edges) {
-				if (e->isVertical() == b->toExtend_isX() && e->fixed() >= b->extendedPair().max) { // verified V
-					coverageRight.addSource(e->ranged(), e->fixed());
-					if (coverageRight.isFullyCovered()) break;
-				}
+			vector<Band*> tempETB = b->mergeCoveredRanges(coverageLeft, coverageRight);
+			vector<Band*> ETB;
+			for (Band *etb : tempETB) {
+				if (etb->alreadyExist(OTB)) continue;
+				if (etb->alreadyExist(CTB)) continue;
+				if (etb->alreadyExist(ETB)) continue;
+				ETB.push_back(etb);
 			}
-			// 負向搜尋(左手邊)
-			for (auto it = edges.rbegin(); it != edges.rend(); ++it) {
-				Edge *e = *it;
-				if (e->isVertical() == b->toExtend_isX() && e->fixed() <= b->extendedPair().max) { // verified V
-					coverageLeft.addSource(e->ranged(), e->fixed());
-					if (coverageLeft.isFullyCovered()) break;
-				}
-			}
-			coverageRight.sortSplitPoints();
-			coverageLeft.sortSplitPoints();
-			//
 		}
 
 		// 因此我們現在獲得了全部的下一個 level 的 bands (在 extendedProbes 裡)
@@ -250,7 +134,7 @@ void mikami(Net &net, Chip &chip, vector<Band*> recordPath){
     } else {
         cout << "Path:" << endl;
         for (Band const *p : path) {
-			cout << p->min.x << ", " << p->min.y << endl;
+			cout << p->x.min << ", " << p->y.min << endl;
 		} 
     }
 }
