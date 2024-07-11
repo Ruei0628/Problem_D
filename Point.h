@@ -6,7 +6,9 @@
 class Point {
 public:
     Point(double x = 99, double y = 99) : x(x), y(y) {}
+
     double x, y;
+	
     bool operator ==(const Point &other) const {
     	return (x == other.x && y == other.y);
     }
@@ -21,11 +23,17 @@ public:
 		this->min = std::min(Min, Max);
 		this->max = std::max(Min, Max);
 	}
+
 	double min, max;
+
 	void operator =(Pair const &other) {
 		this->min = other.min;
 		this->max = other.max;
 	}
+
+    bool operator ==(const Pair &other) const {
+    	return (min == other.min && max == other.max);
+    }
 };
 
 #endif // POINT_H_INCLUDE

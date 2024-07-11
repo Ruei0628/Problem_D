@@ -264,3 +264,49 @@ right: {
 left的parameter為band的左邊boundary，同理right也是
 一旦left或right的range出現斷層(也就是所謂的splitPoint)
 則將此時的左右boundary記起來，儲存在direction，並把此時的range記起來
+
+基本上函式的運作邏輯已經寫在註解裡面了。 
+我想問的是，我的設計應該是"如果extendedBand已經存在於oldBands或currentBands或extendedBands"的話，那麼這筆資料就不會被寫入，
+所以每當執行到step4時，照理來說應該extendedBand應該都會是新的，沒有出現過的Band
+但當我執行
+cout << "> CSB:\n";
+printBands(CSB);
+cout << "> CTB:\n";
+printBands(CTB);
+的時候，會發現舊的Band仍然存在於currentBand(currentBand是由extendedBand寫入)
+我懷疑有兩種因素造成:
+1. 是指標操作上有錯誤才導致
+2. alreadyExist的函式判斷邏輯有誤
+所以我這裡提供 alreadyExist的函式代碼
+
+bool Band::operator ==(Band* const other) const {
+	return this->x == other->x && this->y == other->y;
+}
+bool Band::alreadyExist(vector<Band*> bands) {
+	for (Band* const b : bands) {
+		if (this == b) {
+        	cout << "x: [" << b->x.min << ", " << b->x.max << "]";
+        	cout << " y: [" << b->y.min << ", " << b->y.max << "]" << endl;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+同時，也有可能是判斷式中，指標的錯誤比對造成
+想請問我哪裡有寫錯，請不吝嗇告訴我
+
+// chatGPT認為是我的比較內容有誤
+
+但首先，alreadyExist我就是故意要設計成說，如果他們的x跟y相等的話就return true
+況且新生成的Band的指標位址一定跟原本存在的指標位址不同
+我的"指標操作上有錯誤"是指說我可能沒有正確的刪除、複製、或指向要操作的資料
+希望你可以針對這個下去解答。
+若您真的很需要mergeCoveredRanges 相關的代碼的話，我在這邊貼給您參考，
+但我已經demo過，應該不太可能會有問題(但很有可能問題就在這裡)
+
+我有一個重大的發現
+我在不更動程式碼的情況下，連續執行兩次
+我發現，輸出的結果不一樣，這讓我更確信一定是指標記憶體的 操作不當
+請不要吝嗇，並詳細的在看一次程式碼，檢查哪裡可能會造成指標的操作有誤
+如指標的vector操作(push_back、clear等等)，或是沒有適當delete，或是兩vector之間元素的轉移等等

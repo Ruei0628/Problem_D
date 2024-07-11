@@ -42,7 +42,7 @@ public:
 	void addSource(Edge *edge, vector<Pair> &uncovered, vector<CoveredRange> &covered);
 	vector<Band*> mergeCoveredRanges(vector<CoveredRange> const &left, vector<CoveredRange> const &right);
 
-	bool operator ==(Band const &other) const;
+	bool operator ==(Band* const other) const;
 	bool alreadyExist(vector<Band*> bands);
 };
 

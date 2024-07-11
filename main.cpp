@@ -62,11 +62,12 @@ void bandSearchAlgorithm(Net &net, Chip &chip, vector<Band*> &recordPath){
 	int levelOfIteration = 0;
 	while (1) {
 		cout << "*** levelOfIteration: " << ++levelOfIteration << " ***\n";
-		// step 2: check if intersect
+		
+		// step 2: check if intersect 
 		if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, CSB, CTB)) break;
 		if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, CSB, OTB)) break;
 		if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, OSB, CTB)) break;
-
+		
 		cout << "step 2 complete\n";
 
 		// step 3: copy CSB to OSB; copy CTB to OTB
@@ -115,11 +116,13 @@ void bandSearchAlgorithm(Net &net, Chip &chip, vector<Band*> &recordPath){
 		}
 
 		// 因此我們現在獲得了全部的下一個 level 的 bands (在 extendedBands 裡)
+		// 接下來要將CSB、CTB的資料刪除
 		for (Band *b : CSB) { delete b; }
 		for (Band *b : CTB) { delete b; }
 		CSB.clear();
 		CTB.clear();
 
+		// 然後把ESB、ETB的資料存入CSB、CTB裡面
 		CSB = std::move(ESB);
 		CTB = std::move(ETB);
 

@@ -53,7 +53,7 @@ vector<CoveredRange> Band::generateCoveredRanges(vector<Edge*> &edges, bool righ
 	uncovered.push_back(this->directionPair());
 
 	if (right) { // positive search
-		cout << " > positive search:\n";
+		cout << "(+)positive:\n";
 		for (Edge *e : edges) {
 			if (e->isVertical() == this->toExtend_isX() && e->fixed() >= this->extendedPair().max) { // verified V
 				addSource(e, uncovered, covered);
@@ -61,7 +61,7 @@ vector<CoveredRange> Band::generateCoveredRanges(vector<Edge*> &edges, bool righ
 			}
 		}
 	} else { // negative search
-		cout << " > negative search:\n";
+		cout << "(-)negative:\n";
 		for (auto it = edges.rbegin(); it != edges.rend(); ++it) {
 			Edge *e = *it;
 			if (e->isVertical() == this->toExtend_isX() && e->fixed() <= this->extendedPair().min) { // verified V
@@ -72,7 +72,7 @@ vector<CoveredRange> Band::generateCoveredRanges(vector<Edge*> &edges, bool righ
 	}
 	sort(covered.begin(), covered.end(), [](const CoveredRange& a, const CoveredRange& b) { return a.range.min < b.range.min; });
 	for (const auto& cr : covered) {
-        cout << "   - Pair(" << cr.range.min << ", " << cr.range.max << "), " << cr.fixed << endl;
+        cout << "   > Pair(" << cr.range.min << ", " << cr.range.max << "), " << cr.fixed << endl;
     }
 	return covered;
 }
@@ -149,16 +149,17 @@ vector<Band*> Band::mergeCoveredRanges(const vector<CoveredRange>& left, const v
     return result;
 }
 
-bool Band::operator ==(Band const &other) const {
-	return x.min == other.x.min && x.max == other.x.max && y.min == other.y.min && y.max == other.y.max;
+bool Band::operator ==(Band* const other) const {
+	return this->x == other->x && this->y == other->y;
 }
 
 bool Band::alreadyExist(vector<Band*> bands) {
-	for (Band* const b : bands) { 
-		if (this->x.min == b->x.min 
-		&& this->x.max == b->x.max 
-		&& this->y.min == b->y.min 
-		&& this->y.max == b->y.max) return 1; 
+	for (Band* const b : bands) {
+		if (*this == b) {
+        	cout << "x: [" << b->x.min << ", " << b->x.max << "]";
+        	cout << " y: [" << b->y.min << ", " << b->y.max << "]" << endl;
+			return 1;
+		}
 	}
 	return 0;
 }
