@@ -212,7 +212,8 @@ Chip::Chip(int const &testCase) {
 			}
 
 			// collect edges from tempBlock, and write into totEdge
-			for (Edge &e : tempBlock.edges) { totEdge.push_back(&e); }
+			//for (Edge &e : tempBlock.edges) { totEdge.push_back(&e); }
+			// turn off this when testing
 
 			// write into totZone
 			totZone.push_back(new Block(tempBlock));

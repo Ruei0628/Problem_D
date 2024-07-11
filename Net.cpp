@@ -1,5 +1,8 @@
 #include "Net.h"
-#include <cmath>
+
+Net::Net(Terminal tx, Terminal rx) : TX(tx) {
+	RXs.push_back(rx);
+}
 
 void Net::ParserAllNets (int const &testCase, Chip const &chip) {
 	ifstream file("cad_case0" + to_string(testCase) + "/case0" + to_string(testCase) + ".json");

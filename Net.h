@@ -25,6 +25,7 @@ struct MUST_THROUGH {
 class Net {
 public:
 	Net() {}
+	Net(Terminal TX, Terminal RX);
 
 	int ID;
 	int num;

@@ -14,7 +14,6 @@ struct CoveredRange {
 class Band {
 public: 
 	Band(){}
-	Band(string, bool, double, double, double, double, Band*);
 	Band(Pair, Pair, int, Band*);
 	Band(Terminal, bool, vector<Edge*> const&);
 	string zoneName = "";

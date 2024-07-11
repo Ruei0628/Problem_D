@@ -1,325 +1,261 @@
-#include "Net.h" // include AllZone.h -> Block.h, Region.h -> Zone.h, Wall.h
-#include "Probe.h" // included Wall.h
+#include "Net.h"
+#include "Band.h"
 
-#include <algorithm>
-#include <iomanip>
-#include <iostream>
-#include <vector>
+constexpr double DX = 0.01;
+constexpr double DY = 0.01;
 
-using namespace std;
-
-// enum class Direction { L, R, U, D };
-constexpr double DX = 0.5;
-constexpr double DY = 0.5;
-
-bool compareNetBoundBoxArea(const Net& a, const Net& b) {
-	return a.boundBoxArea < b.boundBoxArea;
-}
-
-void mikami (TX const &source, RX const &target, Chip const &chip) {
-	cout << "Start mikami!" << endl;
-	//step 1: initializaiotn
-	vector<Probe*> CSP; // stands for current source probes
-	vector<Probe*> OSP; // stands for old source probes
-	vector<Probe*> CTP; // stands for current target probes
-	vector<Probe*> OTP; // stands for old target probes
-
-	// 把 TX 跟 RX 改成 probes
-	CSP.push_back(new Probe(source.TX_COORD, source.TX_NAME, 1, 0, nullptr));
-	CSP.push_back(new Probe(source.TX_COORD, source.TX_NAME, 0, 0, nullptr));
-	CTP.push_back(new Probe(target.RX_COORD, target.RX_NAME, 1, 0, nullptr));
-	CTP.push_back(new Probe(target.RX_COORD, target.RX_NAME, 0, 0, nullptr));
-	
-	vector<Wall> const walls = chip.Walls.allWalls;
-	/*
-	for (Wall const &w : walls) {
-		if(w.isVertical){
-			cout << "(" << w.fixedCoord << ", ["
-				 << w.rangeCoord[0] << ", " << w.rangeCoord[1] << "]) "
-				 << w.name << endl;
-		} else {
-			cout << "([" << w.rangeCoord[0] << ", " << w.rangeCoord[1] << "],"
-				 << w.fixedCoord << ") " << w.name << endl;
+bool checkIfIntersect(Band *source, Band *target, vector<Band*> &compairer, vector<Band*> &compairee) {
+	for (Band *s : compairer) {
+		for (Band *t : compairee) {
+			if (s->intersected(t)) {
+				// which means path is found
+				source = s;
+				target = t;
+				return 1;
+			}
 		}
 	}
+	return 0;
+}
+
+void printBands(const vector<Band*>& bands) {
+    for (const auto& band : bands) {
+        cout << "x: [" << band->x.min << ", " << band->x.max << "]";
+        cout << " y: [" << band->y.min << ", " << band->y.max << "]" << endl;
+    }
+}
+
+void bandSearchAlgorithm(Net &net, Chip &chip, vector<Band*> &recordPath){
+	cout << "Start band search!" << endl;
+
+	//step 1: initializaiotn
+	Terminal source = net.TX;
+	Terminal target = net.RXs[0]; // 待處理
+
+	/*
+	現在還沒寫的
+	1. 現在search出來的東西會是一堆band，
+	   要如何在band path中找到一條optimized net，
+	   同時要注意net間距的問題
+	2. must through還沒穿過
+	3. 還沒run過
 	*/
-	Probe* sourceProbeForBacktrace = nullptr;
-	Probe* targetProbeForBacktrace = nullptr;
+
+	vector<Band*> CSB; // stands for current source bands
+	vector<Band*> OSB; // stands for old source bands
+	vector<Band*> CTB; // stands for current target bands
+	vector<Band*> OTB; // stands for old target bands
+
+	vector<Edge*> &edges = chip.totEdge; // make it referenced
+
+	// 把 TX 跟 RX 改成 Bands
+	CSB.push_back(new Band(source, 1, edges));
+	CSB.push_back(new Band(source, 0, edges));
+	CTB.push_back(new Band(target, 1, edges));
+	CTB.push_back(new Band(target, 0, edges));
+
+	Band* sourceBandsBackTrace = nullptr;
+	Band* targetBandsBackTrace = nullptr;
 
 	cout << "step 1 complete\n";
 
-	while(1){
+	int levelOfIteration = 0;
+	while (1) {
+		cout << "*** levelOfIteration: " << ++levelOfIteration << " ***\n";
 		// step 2: check if intersect
-		cout << "-----------------" << endl;
-		cout << "OSP: " << OSP.size() << "\t" << "CSP: " << CSP.size() << endl;
-		cout << "OTP: " << OTP.size() << "\t" << "CTP: " << CTP.size() << endl;
-		bool pathFound = 0;
-		for(Probe *s : CSP){ 
-			for(Probe *t : CTP){ 
-				if (s->coord == t->coord){
-					// which means path is found
-					sourceProbeForBacktrace = s;
-					targetProbeForBacktrace = t;
-					pathFound = 1;
-					break;
-				}	
-			}
-			if (pathFound) break;
-
-			for(Probe *t : OTP){
-				if (s->coord == t->coord){
-				 	// which means path is found
-					sourceProbeForBacktrace = s;
-					targetProbeForBacktrace = t;
-				 	pathFound = 1;
-					break;
-				}
-			}
-			if (pathFound) break;
-		}
-		if (pathFound) break;
-
-		for (Probe *t : CTP) {
-			for (Probe *s : OSP) {
-				if (s->coord == t->coord){
-					// which means path is found
-					sourceProbeForBacktrace = s;
-					targetProbeForBacktrace = t;
-				 	pathFound = 1;
-					break;
-				}
-			 }
-			if (pathFound) break;
-		}
-		if (pathFound) break;
+		if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, CSB, CTB)) break;
+		if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, CSB, OTB)) break;
+		if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, OSB, CTB)) break;
 
 		cout << "step 2 complete\n";
 
-		// step 3: copy CSP to OSP; copy CTP to OTP
+		// step 3: copy CSB to OSB; copy CTB to OTB
 		// current 的點要存回去 old
-		OSP.insert(OSP.end(), CSP.begin(), CSP.end());
-		OTP.insert(OTP.end(), CTP.begin(), CTP.end());
+		OSB.insert(OSB.end(), CSB.begin(), CSB.end());
+		OTB.insert(OTB.end(), CTB.begin(), CTB.end());
 
 		// current 的資料應該不能刪掉，因為還要 extend
-		// 只是在這之後(、被清除之前)調用 current probes 應該只能 const &
-
+		// 只是在這之後(、被清除之前)調用 current bands 應該只能 const *
 		cout << "step 3 complete\n";
 
-		// step 4. 生成與 current probes 垂直的 extendedProbes，並先把他們暫存在一個 vector 裡面
+		// step 4. 生成與 current bands 垂直的 extendedProbes，並先把他們暫存在一個 vector 裡面
 		// 要分成 from source 跟 from target
-		vector<Probe*> ESP; // stands for extended source probes
-		vector<Probe*> ETP; // stands for extended target probes
-		// 這些生成出來的 probes 的 level 要 +1
+		vector<Band*> ESB; // stands for extended source bands
+		vector<Band*> ETB; // stands for extended target bands
+		// 這些生成出來的 bands 的 level 要 +1
 
-		for (Probe *p : CSP) { // 來自 source
-			double dx = p->directionX * DX;
-			double dy = !(p->directionX) * DY;
-			double X = dx, Y = dy;
-			int levelCSP = p->level;
-			//cout << "source directionX: " << p.directionX << endl;
-			// 往兩個方向生成新的 probe
-			// 正方向
-			while (1) {
-				Probe *positiveProbe = p->extendedProbe(X, Y, levelCSP + 1);
-				//cout << "positiveProbe: " << positiveProbe.coord.x << ", " << positiveProbe.coord.y << endl;
-				// 如果這個 probe 會撞到牆，直接結束這個方向的 extend
-				if (positiveProbe->hitWall(walls)) {
-				 	// cout << "EPSP hit wall!" << endl;
-				 	break;
+		cout << " * from source:\n";
+		for (Band *b : CSB) { // 來自 source
+			vector<CoveredRange> coverageRight = b->generateCoveredRanges(edges, 1);
+			vector<CoveredRange> coverageLeft = b->generateCoveredRanges(edges, 0);
+
+			vector<Band*> tempESB = b->mergeCoveredRanges(coverageLeft, coverageRight);
+			for (Band *esb : tempESB) {
+				if (esb->alreadyExist(OSB) || esb->alreadyExist(CSB) || esb->alreadyExist(ESB)) {
+					delete esb;
+					continue;
 				}
-				X += dx;
-				Y += dy;
-				// 如果這個 probe 已經存在 OSP 裡面，跳過這個 probe (但還是會繼續執行 extend)
-				if (positiveProbe->alreadyExist(OSP)) continue; // may be time-consuming
-				if (positiveProbe->alreadyExist(CSP)) continue; // may be time-consuming
-				if (positiveProbe->alreadyExist(ESP)) continue; // may be time-consuming
-				ESP.push_back(positiveProbe);
+				ESB.push_back(esb);
 			}
-			// cout << "EPSP done!" << endl;
-			// 負方向
-			X = dx;
-			Y = dy;
-			while (1) {
-				Probe *negativeProbe = p->extendedProbe(-X, -Y, levelCSP + 1);
-				//cout << "negativeProbe: " << negativeProbe.coord.x << ", " << negativeProbe.coord.y << endl;
-				// 如果這個 probe 會撞到牆，直接結束這個方向的 extend
-				if (negativeProbe->hitWall(walls)) {
-				 	// cout << "ENSP hit wall!" << endl;
-				 	break;
-				}
-				X += dx;
-				Y += dy;
-				// 如果這個 probe 已經存在 OSP 裡面，跳過這個 probe (但還是會繼續執行 extend)
-				if (negativeProbe->alreadyExist(OSP)) continue; // may be time-consuming
-				if (negativeProbe->alreadyExist(CSP)) continue; // may be time-consuming
-				if (negativeProbe->alreadyExist(ESP)) continue; // may be time-consuming
-				ESP.push_back(negativeProbe);
-			}
-			// cout << "ENSP done!" << endl;
 		}
 
-		for (Probe *p : CTP) { // 來自 target
-		 	double dx = p->directionX * DX;
-		 	double dy = !(p->directionX) * DY;
-		 	double X = dx, Y = dy;
-		 	int levelCTP = p->level;
-		 	//cout << "target directionX: " << p.directionX << endl;
+		cout << " * from target:\n";
+		for (Band *b : CTB) { // 來自 target
+			vector<CoveredRange> coverageRight = b->generateCoveredRanges(edges, 1);
+			vector<CoveredRange> coverageLeft = b->generateCoveredRanges(edges, 0);
 
-			// 往兩個方向生成新的 probe
-			// 正方向
-			while (1) {
-				Probe *positiveProbe = p->extendedProbe(X, Y, levelCTP + 1);
-				//cout << "positiveProbe: " << positiveProbe.coord.x << ", " << positiveProbe.coord.y << endl;
-				// 如果這個 probe 會撞到牆，直接結束這個方向的 extend
-				if (positiveProbe->hitWall(walls)) {
-					// cout << "EPTP hit wall!" << endl;
-				 	break;
+			vector<Band*> tempETB = b->mergeCoveredRanges(coverageLeft, coverageRight);
+			for (Band *etb : tempETB) {
+				if (etb->alreadyExist(OTB) || etb->alreadyExist(CTB) || etb->alreadyExist(ETB)) {
+					delete etb;
+					continue;
 				}
-				X += dx;
-				Y += dy;
-				// 如果這個 probe 已經存在 OTP 裡面，跳過這個 probe (但還是會繼續執行 extend)
-				if (positiveProbe->alreadyExist(OTP)) continue; // may be time-consuming
-				if (positiveProbe->alreadyExist(CTP)) continue; // may be time-consuming
-				if (positiveProbe->alreadyExist(ETP)) continue; // may be time-consuming
-				ETP.push_back(positiveProbe);
+				ETB.push_back(etb);
 			}
-			// cout << "EPTP done!" << endl;
-			// 負方向
-			X = dx;
-			Y = dy;
-			while (1) {
-				Probe *negativeProbe = p->extendedProbe(-X, -Y, levelCTP + 1);
-				//cout << "negativeProbe: " << negativeProbe.coord.x << ", " << negativeProbe.coord.y << endl;
-				// 如果這個 probe 會撞到牆，直接結束這個方向的 extend
-				if (negativeProbe->hitWall(walls)) {
-				 	// cout << "ENTP hit wall!" << endl;
-				 	break;
-				}
-				X += dx;
-				Y += dy;
-				// 如果這個 probe 已經存在 OTP 裡面，跳過這個 probe (但還是會繼續執行 extend)
-				if (negativeProbe->alreadyExist(OTP)) continue; // may be time-consuming
-				if (negativeProbe->alreadyExist(CTP)) continue; // may be time-consuming
-				if (negativeProbe->alreadyExist(ETP)) continue; // may be time-consuming
-				ETP.push_back(negativeProbe);
-			}
-			// cout << "ENTP done!" << endl;
 		}
 
-		// 因此我們現在獲得了全部的下一個 level 的 probes (在 extendedProbes 裡)
-		CSP.swap(ESP);
-		ESP.clear();
-		CTP.swap(ETP);
-		ETP.clear();
+		// 因此我們現在獲得了全部的下一個 level 的 bands (在 extendedBands 裡)
+		for (Band *b : CSB) { delete b; }
+		for (Band *b : CTB) { delete b; }
+		CSB.clear();
+		CTB.clear();
+
+		CSB = std::move(ESB);
+		CTB = std::move(ETB);
+
+		cout << "> CSB:\n";
+		printBands(CSB);
+		cout << "> CTB:\n";
+		printBands(CTB);
 
 		cout << "step 4 complete\n";
+		if (levelOfIteration == 3) return;
 	}
 
 	// Step 5: Backtrace
 	cout << "Path found!" << endl;
-	vector<const Probe*> path;
 
-	// Backtrace from source probe
-	const Probe* probe = sourceProbeForBacktrace;
-	while (probe) {
-		path.push_back(probe);
-		probe = probe->parentProbe; // mistake
+	// Backtrace from source Band
+	Band* band = sourceBandsBackTrace;
+	while (band) {
+		recordPath.push_back(band);
+		band = band->parent;
 	}
 
-	reverse(path.begin(), path.end()); // Reverse to get path from source to target
+	reverse(recordPath.begin(), recordPath.end()); // Reverse to get path from source to target
 
-	// Backtrace from target probe
-	probe = targetProbeForBacktrace;
-	while (probe) {
-		path.push_back(probe);
-		probe = probe->parentProbe; // mistake
+	// Backtrace from target Band
+	band = targetBandsBackTrace;
+	while (band) {
+		recordPath.push_back(band);
+		band = band->parent;
 	}
 
 	// Clean up dynamically allocated memory
-	delete sourceProbeForBacktrace;
-	delete targetProbeForBacktrace;
+	delete sourceBandsBackTrace;
+	delete targetBandsBackTrace;
+
 	// Print the path
-	cout << "len(Path): " << path.size() << endl;
-    if (path.empty()) {
-        cout << "Path is empty." << endl;
-    } else {
-        cout << "Path:" << endl;
-        for (Probe const *p : path) {
-            cout << "(" << p->coord.x << ", " << p->coord.y << ")" << endl;
-        }
-    }
-}
-
-int main()
-{
-	cout << fixed << setprecision(1);
-
- 	int testCase = 4;
-	Chip chip(testCase);
-	/*
-    for (Zone *z : allZone.totZone) {
-      	if (Block *bPtr = dynamic_cast<Block *>(z)) {
-        	Block n = *bPtr;
-        	cout << n.name << endl;
-        	for (Point const &b : n.vertices) {
-        	  cout << b.x << "," << b.y << endl;
-        	}
-      	}
-      	if (Region *rPtr = dynamic_cast<Region *>(z)) {
-        	Region n = *rPtr;
-        	cout << n.name << endl;
-        	for (Point const &b : n.vertices) {
-        	  cout << b.x << "," << b.y << endl;
-        	}
-      	}
-    }
-	*/
-
-    Net Nets;
-	Nets.ParserAllNets(testCase);
-	for (Net &n : Nets.allNets) {
-		n.showNetInfo();
+	cout << "len(Path): " << recordPath.size() << endl;
+    cout << "Path:" << endl;
+    for (Band const *p : recordPath) {
+		cout << p->x.min << ", " << p->y.min << endl;
 	}
-
-	TX start;
-  	start.TX_COORD = Point(13, 12);
-  	start.TX_NAME = "testS";
-  	RX end;
-  	end.RX_COORD = Point(56, 6);
-  	end.RX_NAME = "testT";
-  	mikami(start, end, chip);
-	return 0;
-
-	// 把 net 用 bound box 大小重新排序
-	// sort(Nets.allNets.begin(), Nets.allNets.end(), compareNetBoundBoxArea);
-	// Nets.allNets[3].showNetInfo();
-
-	// vector<Wall> walls = allZone.Walls.allWalls;
-	/*
-	Probe mo(Point(1,2), "A", 1, 0, nullptr);
-	Probe m1 = mo.extendedProbe(2, 0, 1);
-	cout << m1.coord.x << ", " << m1.coord.y << ", prnt:("
-		 << m1.parentProbe->coord.x << ", " << m1.parentProbe->coord.y
-		 << ") " << m1.directionX << endl;
-	Probe m2 = m1.extendedProbe(0, 2, 2);
-	cout << m2.coord.x << ", " << m2.coord.y << ", prnt:("
-		 << m2.parentProbe->coord.x << ", " << m2.parentProbe->coord.y
-		 << ") " << m2.directionX << endl;
-	*/
 	
-	for (Net const &n : Nets.allNets) {
-		cout << "[ID_" << n.ID << "]" << endl;
-		TX const &source = n.absoluteTX(chip);
-		for (RX const &rx : n.RXs) {
-			RX const &target = n.absoluteRX(rx, chip);
-			mikami(source, target, chip);
-		}
-	}
-
-	return 0;
-
+	for (Band *b : OSB) { delete b; }
+	for (Band *b : CSB) { delete b; }
+	for (Band *b : OTB) { delete b; }
+	for (Band *b : CTB) { delete b; }
 }
 
-// cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ main.cpp Chip.cpp Block.cpp Net.cpp Probe.cpp Region.cpp Wall.cpp -o main} ; if ($?) { .\main }
-// cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ test0628.cpp Chip.cpp Block.cpp Net.cpp Probe.cpp Region.cpp Wall.cpp -o test0628} ; if ($?) { .\main }
-// cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ main.cpp Net.cpp -o main} ; if ($?) { .\main }
+int main() {
+	/*1*/
+
+	Chip chip(0);
+	chip.border = Point(33, 15);
+	chip.totEdge.clear();
+
+	chip.totEdge.push_back(new Edge(Point(0, 4), Point(4, 4)));
+	chip.totEdge.push_back(new Edge(Point(4, 4), Point(4, 11)));
+	chip.totEdge.push_back(new Edge(Point(4, 11), Point(7, 11)));
+	chip.totEdge.push_back(new Edge(Point(7, 11), Point(7, 13)));
+	chip.totEdge.push_back(new Edge(Point(23, 13), Point(7, 13)));
+	chip.totEdge.push_back(new Edge(Point(23, 13), Point(23, 15)));
+
+	chip.totEdge.push_back(new Edge(Point(9, 10), Point(9, 12)));
+	chip.totEdge.push_back(new Edge(Point(9, 12), Point(20, 12)));
+	chip.totEdge.push_back(new Edge(Point(20, 12), Point(20, 10)));
+	chip.totEdge.push_back(new Edge(Point(9, 10), Point(20, 10)));
+
+	chip.totEdge.push_back(new Edge(Point(11, 0), Point(11, 9)));
+	chip.totEdge.push_back(new Edge(Point(11, 9), Point(17, 9)));
+	chip.totEdge.push_back(new Edge(Point(17, 7), Point(17, 9)));
+	chip.totEdge.push_back(new Edge(Point(14, 7), Point(17, 7)));
+	chip.totEdge.push_back(new Edge(Point(14, 7), Point(14, 0)));
+
+	chip.totEdge.push_back(new Edge(Point(17, 2), Point(17, 4)));
+	chip.totEdge.push_back(new Edge(Point(17, 4), Point(22, 4)));
+	chip.totEdge.push_back(new Edge(Point(22, 4), Point(22, 12)));
+	chip.totEdge.push_back(new Edge(Point(22, 12), Point(25, 12)));
+	chip.totEdge.push_back(new Edge(Point(25, 12), Point(25, 10)));
+	chip.totEdge.push_back(new Edge(Point(25, 10), Point(28, 10)));
+	chip.totEdge.push_back(new Edge(Point(28, 10), Point(28, 8)));
+	chip.totEdge.push_back(new Edge(Point(28, 8), Point(25, 8)));
+	chip.totEdge.push_back(new Edge(Point(25, 8), Point(25, 3)));
+	chip.totEdge.push_back(new Edge(Point(25, 3), Point(22, 3)));
+	chip.totEdge.push_back(new Edge(Point(22, 3), Point(22, 2)));
+	chip.totEdge.push_back(new Edge(Point(22, 2), Point(17, 2)));
+
+	chip.totEdge.push_back(new Edge(Point(24, 15), Point(24, 13)));
+	chip.totEdge.push_back(new Edge(Point(24, 13), Point(30, 13)));
+	chip.totEdge.push_back(new Edge(Point(30, 13), Point(30, 6)));
+	chip.totEdge.push_back(new Edge(Point(30, 6), Point(27, 6)));
+	chip.totEdge.push_back(new Edge(Point(27, 6), Point(27, 4)));
+	chip.totEdge.push_back(new Edge(Point(27, 4), Point(30, 4)));
+	chip.totEdge.push_back(new Edge(Point(30, 4), Point(30, 3)));
+	chip.totEdge.push_back(new Edge(Point(30, 3), Point(33, 3)));
+
+	// Edges: already have block Edges, here adding the chip border
+	chip.totEdge.push_back(new Edge(Point(0, 0), Point(0, chip.border.y)));
+	chip.totEdge.push_back(new Edge(Point(0, 0), Point(chip.border.x, 0)));
+	chip.totEdge.push_back(new Edge(Point(0, chip.border.y), chip.border));
+	chip.totEdge.push_back(new Edge(Point(chip.border.x, 0), chip.border));
+
+	// make it ordered
+	std::sort(chip.totEdge.begin(), chip.totEdge.end(), 
+	[](const Edge* a, const Edge* b) { return a->fixed() < b->fixed(); });
+
+	Terminal start("testS", Point(6, 5));
+  	Terminal end("testT", Point(26, 3));
+	Net n(start, end);
+	
+	vector<Band*> record;
+	bandSearchAlgorithm(n, chip, record);
+
+	cout << "done" << endl;
+	return 0;
+
+	/*2*/
+
+	Net net;
+	net.ParserAllNets(0, chip);
+	//vector<Band*> record;
+
+	int index = 0;
+	for (Net n : net.allNets) {
+		index++;
+		bandSearchAlgorithm(n, chip, record);
+		if (index > 3) break;
+	}
+
+	cout << "done" << endl;
+	return 0;
+}
+
+/*
+cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ main.cpp Band.cpp Chip.cpp Block.cpp Net.cpp Region.cpp -o main} ; if ($?) { .\main }
+
+cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ test0628.cpp Chip.cpp Block.cpp Net.cpp Probe.cpp Region.cpp  Edge.cpp -o test0628} ; if ($?) { .\main }
+
+cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ main.cpp Net.cpp -o main} ; if ($?) { .\main }
+*/
