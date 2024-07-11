@@ -3,8 +3,6 @@
 
 using namespace std;
 
-Point BORDER;
-
 vector<Point> edgeToPoint(Edge const &e) {
 	return vector<Point>{e.first, e.second};
 }
@@ -24,7 +22,7 @@ void facingAndFlip(vector<Point> &vertices, string facingFlip) {
 	tempVertices = vertices;
 	vertices.clear();
 
-	Point min(BORDER.x, BORDER.y);
+	Point min(1e+10, 1e+10);
 	for (Point &vertex : tempVertices) {
 		if (vertex.x < min.x) min.x = vertex.x;
 		if (vertex.y < min.y) min.y = vertex.y;
@@ -46,7 +44,7 @@ void facingAndFlip(vector<Point> &vertices, string facingFlip) {
 	}
 
 	// shift to original min
-	Point newMin(BORDER.x, BORDER.y);
+	Point newMin(1e+10, 1e+10);
 	for (Point &vertex : vertices) {
 		if (vertex.x < newMin.x) newMin.x = vertex.x;
 		if (vertex.y < newMin.y) newMin.y = vertex.y;
@@ -57,12 +55,6 @@ void facingAndFlip(vector<Point> &vertices, string facingFlip) {
 }
 
 Chip::Chip(int const &testCase) {
-	/*
-	Edges.allEdges.push_back(Edge(1, 0, 0, border_Y, ""));
-	Edges.allEdges.push_back(Edge(0, 0, 0, border_X, ""));
-	Edges.allEdges.push_back(Edge(1, border_X, 0, border_Y, ""));
-	*/
-
 	// Open chip_top.def to get
 	// blockName, blkID, coordinate, facingFlip
 	ifstream file_chip_top("cad_case0" + to_string(testCase) + "/case0" + to_string(testCase) + "/chip_top.def");
@@ -94,11 +86,11 @@ Chip::Chip(int const &testCase) {
 		// get borders
 		if (lineNumber == 8) {
 			istringstream iss(line);
+			double border_X, border_Y;
 			iss >> temp >> temp >> temp >> temp >> temp >> temp >> border_X >> border_Y;
 			border_X /= UNITS_DISTANCE_MICRONS;
 			border_Y /= UNITS_DISTANCE_MICRONS;
-			BORDER.x = border_X;
-			BORDER.y = border_Y;
+			border = Point(border_X, border_Y);
 		}
 
 		// read block informations
@@ -218,7 +210,10 @@ Chip::Chip(int const &testCase) {
 				BPR.first = convert[0];
 				BPR.second = convert[1];
 			}
-			
+
+			// collect edges from tempBlock, and write into totEdge
+			for (Edge &e : tempBlock.edges) { totEdge.push_back(&e); }
+
 			// write into totZone
 			totZone.push_back(new Block(tempBlock));
 		}
@@ -245,6 +240,16 @@ Chip::Chip(int const &testCase) {
 		}
 	}
 	file_chip_top.close();
+
+	// Edges: already have block Edges, here adding the chip border
+	totEdge.push_back(new Edge(Point(0, 0), Point(0, border.y)));
+	totEdge.push_back(new Edge(Point(0, 0), Point(border.x, 0)));
+	totEdge.push_back(new Edge(Point(0, border.y), border));
+	totEdge.push_back(new Edge(Point(border.x, 0), border));
+
+	// make it ordered
+	std::sort(totEdge.begin(), totEdge.end(), 
+	[](const Edge* a, const Edge* b) { return a->fixed() < b->fixed(); });
 }
 
 Block Chip::getBlock(string blockName) const {
@@ -253,6 +258,7 @@ Block Chip::getBlock(string blockName) const {
 			if (bPtr->name == blockName) return *bPtr;
 		}
 	}
+	return Block();
 }
 
 Region Chip::getRegion(string regionName) const {
@@ -261,9 +267,10 @@ Region Chip::getRegion(string regionName) const {
 			if (rPtr->name == regionName) return *rPtr;
 		}
 	}
+	return Region();
 }
 
-void Chip::showAllZones() {
+void Chip::showAllZones() const {
 	for (Zone *z : totZone) {
 		if (Block *bPtr = dynamic_cast<Block *>(z)) {
 			if (bPtr->vertices.size() == 4) {
@@ -276,12 +283,8 @@ void Chip::showAllZones() {
 }
 
 Chip::~Chip() {
-	for (Zone *z : totZone) {
-		delete z;
-	}
-	for (Edge *e : totEdge) {
-		delete e;
-	}
+	for (Zone *z : totZone) { delete z; }
+	for (Edge *e : totEdge) { delete e; }
 	totZone.clear();
 	totEdge.clear();
 }

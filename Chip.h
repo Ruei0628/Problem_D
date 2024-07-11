@@ -18,8 +18,7 @@ class Chip : public Zone {
 public:
 	Chip(int const &testCase);
 
-	double border_X;
-	double border_Y;
+	Point border;
 	int UNITS_DISTANCE_MICRONS;
 	
 	vector<Zone*> totZone;
@@ -27,7 +26,7 @@ public:
 	
 	Block getBlock(string) const;
 	Region getRegion(string) const;
-	void showAllZones();
+	void showAllZones() const;
 	~Chip();
 };
 

@@ -10,8 +10,8 @@ Probe *Probe::extendedProbe(double dx, double dy, int lv) {
     return new Probe(newPoint, zoneName, !directionX, lv, this);
 }
 
-bool Probe::hitWall(const std::vector<Wall>& walls) const {
-    for(const Wall& w : walls) {
+bool Probe::hitWall(const std::vector<Edge>& walls) const {
+    for(const Edge &w : walls) {
         if (zoneName == w.name) continue;
         if (!directionX && w.isVertical) {
             if(coord.x == w.fixedCoord && w.inRange(coord.y)) {

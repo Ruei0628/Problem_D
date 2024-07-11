@@ -17,9 +17,9 @@ public:
 	Block();
 	Block(Block const &);
 
-	string blkID;
 	Point coordinate;
 	string facingFlip;
+	string blkID;
 
 	int through_block_net_num;
 	vector<BlockEdgeAndNum> through_block_edge_net_num;
@@ -30,6 +30,7 @@ public:
 
 	void verticesToEdges();
 	void showBlockInfo();
+	// 還沒寫net穿過block會減少through_block_net_num
 };
 
 #endif // BLOCK_H_INCLUDED

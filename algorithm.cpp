@@ -1,8 +1,8 @@
 #include "Net.h"
 #include "Band.h"
 
-constexpr double DX = 0.5;
-constexpr double DY = 0.5;
+constexpr double DX = 0.01;
+constexpr double DY = 0.01;
 
 bool checkIfIntersect(Band *sourceBandsBackTrace, Band *targetBandsBackTrace, 
 					  vector<Band*> &compairer, vector<Band*> &compairee) {
@@ -19,7 +19,78 @@ bool checkIfIntersect(Band *sourceBandsBackTrace, Band *targetBandsBackTrace,
 	return 0;
 }
 
-void mikami(Net &net, Chip const &chip, vector<Band*> recordPath){
+class RangeCoverage {
+private:
+    Pair target;
+    vector<Pair> uncovered;
+
+public:
+    vector<CoveredRange> covered;
+    vector<double> splitPoints;
+	
+    RangeCoverage(Pair target) : target(target) {
+        uncovered.push_back(target);
+        splitPoints = { target.min, target.max };
+    }
+
+    void addSource(Pair source, double fixed) {
+        if (source.max <= target.min || source.min >= target.max) {
+            return;  // This source is completely outside the target range
+        }
+
+        // Clip the source to the target range
+        source.min = max(source.min, target.min);
+        source.max = min(source.max, target.max);
+
+        vector<Pair> newUncovered;
+        vector<CoveredRange> newCovered;
+
+        for (const auto& uncoveredRange : uncovered) {
+            if (source.min <= uncoveredRange.min && source.max >= uncoveredRange.max) {
+                // This uncovered range is completely covered
+                newCovered.push_back(CoveredRange(uncoveredRange, fixed));
+            } else if (source.max <= uncoveredRange.min || source.min >= uncoveredRange.max) {
+                // This uncovered range is not affected
+                newUncovered.push_back(uncoveredRange);
+            } else {
+                // Partial overlap
+                if (source.min > uncoveredRange.min) {
+                    newUncovered.push_back(Pair(uncoveredRange.min, source.min));
+                }
+                if (source.max < uncoveredRange.max) {
+                    newUncovered.push_back(Pair(source.max, uncoveredRange.max));
+                }
+                newCovered.push_back(CoveredRange(Pair(max(source.min, uncoveredRange.min), min(source.max, uncoveredRange.max)), fixed));
+            }
+        }
+
+        uncovered = newUncovered;
+        for (const auto& range : newCovered) {
+            covered.push_back(range);
+            splitPoints.push_back(range.range.min);
+            splitPoints.push_back(range.range.max);
+        }
+    }
+
+    bool isFullyCovered() const {
+        return uncovered.empty();
+    }
+
+    void sortSplitPoints() {
+        sort(splitPoints.begin(), splitPoints.end());
+        splitPoints.erase(unique(splitPoints.begin(), splitPoints.end()), splitPoints.end());
+
+        for (size_t i = 0; i < splitPoints.size(); ++i) {
+            cout << splitPoints[i];
+            if (i < splitPoints.size() - 1) {
+                cout << ", ";
+            }
+        }
+        cout << endl;
+    }
+};
+
+void mikami(Net &net, Chip &chip, vector<Band*> recordPath){
 	cout << "Start mikami!" << endl;
 
 	//step 1: initializaiotn
@@ -31,13 +102,13 @@ void mikami(Net &net, Chip const &chip, vector<Band*> recordPath){
 	vector<Band*> CTB; // stands for current target bands
 	vector<Band*> OTB; // stands for old target bands
 
-	// 把 TX 跟 RX 改成 Bands
-	CSB.push_back(new Band(source, 1));
-	CSB.push_back(new Band(source, 0));
-	CTB.push_back(new Band(target, 1));
-	CTB.push_back(new Band(target, 0));
+	vector<Edge*> &edges = chip.totEdge; // make it referenced
 
-	vector<Edge> const edges = chip.Edges.allEdges;
+	// 把 TX 跟 RX 改成 Bands
+	CSB.push_back(new Band(source, 1, edges));
+	CSB.push_back(new Band(source, 0, edges));
+	CTB.push_back(new Band(target, 1, edges));
+	CTB.push_back(new Band(target, 0, edges));
 
 	Band* sourceBandsBackTrace = nullptr;
 	Band* targetBandsBackTrace = nullptr;
@@ -115,12 +186,28 @@ void mikami(Net &net, Chip const &chip, vector<Band*> recordPath){
 		}
 
 		for (Band *b : CTB) { // 來自 target
-		 	// 第一步先檢查他的direction是x還是y
-			// 然後才能知道他的min跟max end是要看x還是y
-			// 接下來，從min_end在direction的方向，每隔一段距離toExtend找牆壁
-			// 一旦發現牆壁的距離有所改變，則完成這個band
-			// 把相關的資訊紀錄好，存在ETB理面。
-			// 直到max_end
+			Pair goalPair = b->directionPair();
+			RangeCoverage coverageRight(goalPair);
+			RangeCoverage coverageLeft(goalPair);
+
+			// 正向搜尋(右手邊)
+			for (Edge *e : edges) {
+				if (e->isVertical() == b->toExtend_isX() && e->fixed() >= b->extendedPair().max) { // verified V
+					coverageRight.addSource(e->ranged(), e->fixed());
+					if (coverageRight.isFullyCovered()) break;
+				}
+			}
+			// 負向搜尋(左手邊)
+			for (auto it = edges.rbegin(); it != edges.rend(); ++it) {
+				Edge *e = *it;
+				if (e->isVertical() == b->toExtend_isX() && e->fixed() <= b->extendedPair().max) { // verified V
+					coverageLeft.addSource(e->ranged(), e->fixed());
+					if (coverageLeft.isFullyCovered()) break;
+				}
+			}
+			coverageRight.sortSplitPoints();
+			coverageLeft.sortSplitPoints();
+			//
 		}
 
 		// 因此我們現在獲得了全部的下一個 level 的 bands (在 extendedProbes 裡)

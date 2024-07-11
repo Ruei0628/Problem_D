@@ -196,3 +196,71 @@ public:
 	Region getRegion(string) const;
 	~Chip();
 };
+
+如：covered_1 = {
+	[0,1],
+	[1,5],
+	[5,7]
+}
+covered_2 = {
+	[0,1],
+	[1,3],
+	[3,6]
+}
+得到最終合併 
+vector<Pair> covered_combine(vector<Pair> a, vector<Pair> b) {
+	// 程式實作
+}
+結果 = {
+	[0,1],
+	[1,3],
+	[3,5],
+	[5,6],
+	[6,7]
+}
+
+還記得你之前我向您問過關於rangeCoverage的問題嗎?
+
+我現在想要更改這個程式，變成只輸出splitPoint。 
+
+如果input為 Pair target(0, 11); 
+vector sources = {
+	Pair(0, 3),
+	Pair(2, 5),
+	Pair(4, 7),
+	Pair(1, 6),
+	Pair(6.3, 9),
+	Pair(8.6, 11.4)
+}; 
+
+則原本的輸出會是 Pair(0, 3) Pair(3, 5) Pair(5, 7) Pair(7, 9) Pair(9, 11)  
+
+我現在只想要輸出 0, 3, 5, 7, 9, 11
+
+我現在想要您幫我寫一個整合的程式
+我現在會有兩個vector<CoveredRange>，分別為left和right
+我要你幫我做的事是，合併left與right，使得他們生成一組新的vector<Band>
+
+class Band {
+public: 
+	Pair direction, extended;
+};
+
+假設 left: {
+	CoveredRange(Pair(1, 6), 1),
+	CoveredRange(Pair(7, 9), 2),  
+	CoveredRange(Pair(0, 1), 3),       
+	CoveredRange(Pair(6, 7), 5),     
+	CoveredRange(Pair(9, 11), 6) 
+}
+right: {
+	CoveredRange(Pair(0, 3), 11)
+	CoveredRange(Pair(3, 5), 12)       
+	CoveredRange(Pair(5, 7), 13)       
+	CoveredRange(Pair(7, 9), 15)       
+	CoveredRange(Pair(9, 11), 16)
+}
+
+left的parameter為band的左邊boundary，同理right也是
+一旦left或right的range出現斷層(也就是所謂的splitPoint)
+則將此時的左右boundary記起來，儲存在direction，並把此時的range記起來

@@ -30,27 +30,28 @@ void Block::showBlockInfo() {
 	<< "coordinate: (" << coordinate.x << ", " << coordinate.y
 	<< ") " << endl
 	<< "facingFlip: '" << facingFlip << "'" << endl;
+	
 	cout << "vertices: " << endl;
 	for (auto v : vertices) {
-		cout<< v.x << " " << v.y << "\n";
+		cout<< v.x << "\t" << v.y << "\n";
 	}
+
 	cout << "through_block_net_num: " << through_block_net_num << endl
 	<< "through_block_edge_net_num: ";
 	for (BlockEdgeAndNum const &TBENN : through_block_edge_net_num) {
-		cout << endl << "(" << TBENN.edge.first.x << ", "
-		<< TBENN.edge.first.y << ") ("
-		<< TBENN.edge.second.x << ", "
-		<< TBENN.edge.second.y << ") "
-		<< TBENN.net_num;
+		cout << endl << "(" << TBENN.edge.first.x << ", " << TBENN.edge.first.y << ") ("
+		<< TBENN.edge.second.x << ", " << TBENN.edge.second.y << ") " << TBENN.net_num;
 	}
 	cout << endl;
+
 	cout << "block_port_region: ";
 	for (Edge const &BPR : block_port_region) {
 		cout << endl << "(" << BPR.first.x << ", " << BPR.first.y
 		<< ") (" << BPR.second.x << ", " << BPR.second.y << ")";
 	}
-	cout << endl
-		   << "is_feedthroughable: " << is_feedthroughable << endl
-		   << "is_tile: " << is_tile << endl;
+	cout << endl;
+	
+	cout << "is_feedthroughable: " << is_feedthroughable << endl
+	<< "is_tile: " << is_tile << endl;
 	cout << "----------------------" << endl;
 }

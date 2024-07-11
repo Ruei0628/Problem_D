@@ -2,7 +2,7 @@
 #define PROBE_H_INCLUDE
 
 #include "Point.h"
-#include "Wall.h"
+#include "Edge.h"
 #include <vector>
 #include <string>
 
@@ -17,7 +17,7 @@ public:
     Probe* parentProbe;
 
     Probe *extendedProbe(double dx, double dy, int lv);
-    bool hitWall(vector<Wall> const &walls) const;
+    bool hitWall(vector<Edge> const &walls) const;
     bool alreadyExist(vector<Probe*> const &oldProbes) const;
 };
 

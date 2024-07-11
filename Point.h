@@ -14,7 +14,7 @@ public:
 
 class Pair {
 public:
-	Pair(){}
+	Pair() : min(0), max(0) {}
 	Pair(double Min, double Max) {
 		// Min should smaller than Max, 
 		// but in case we still check that
