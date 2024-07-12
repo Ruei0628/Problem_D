@@ -34,9 +34,9 @@ void Net::ParserAllNets (int const &testCase, Chip const &chip) {
 		}
 		// Write into RXs
 	    for(int i = 0; i < tempRXNameArray.size(); i++){
-			Terminal write(tempRXNameArray[i], tempRXCoordArray[i]);
-			write.absoluteCoord(chip);
-	    	tempNet.RXs.push_back(write);
+			Terminal RX(tempRXNameArray[i], tempRXCoordArray[i]);
+			RX.absoluteCoord(chip);
+	    	tempNet.RXs.push_back(RX);
 	    }
 
 		// NUM:

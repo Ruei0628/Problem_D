@@ -22,7 +22,7 @@ public:
 	int UNITS_DISTANCE_MICRONS;
 	
 	vector<Zone*> totZone;
-	vector<Edge*> totEdge;
+	vector<Edge> totEdge;
 	
 	Block getBlock(string) const;
 	Region getRegion(string) const;

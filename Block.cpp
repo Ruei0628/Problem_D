@@ -1,5 +1,4 @@
 #include "Block.h"
-#include <vector>
 
 Block::Block() {}
 
@@ -20,7 +19,7 @@ Block::Block(Block const &b) {
 void Block::verticesToEdges() {
   	//if (b.is_feedthroughable) return; // should be revise, TODO!!
 	for (int i = 0; i < vertices.size(); i++) {
-		edges.push_back(Edge(vertices[i], vertices[(i + 1) % vertices.size()]));
+		edges.push_back(Edge(vertices[i], vertices[(i + 1) % vertices.size()], this));
 	}
 }
 

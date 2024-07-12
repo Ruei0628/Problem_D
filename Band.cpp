@@ -5,7 +5,7 @@ Band::Band(Pair X, Pair Y, int Level, Band *Parent) : x(X), y(Y), level(Level), 
 	direction_isX = !Parent->direction_isX;
 }
 
-Band::Band(Terminal terminal, bool direction_isX, vector<Edge*> const &edges)
+Band::Band(Terminal terminal, bool direction_isX, vector<Edge> const &edges)
 		  :zoneName(terminal.name), direction_isX(direction_isX), parent(nullptr) {
 	if (direction_isX) {
 		x = this->directionPair(edges, terminal.coord);
@@ -16,29 +16,28 @@ Band::Band(Terminal terminal, bool direction_isX, vector<Edge*> const &edges)
 	}
 }
 
-Pair Band::directionPair(vector<Edge*> const OrderedEdges, Point coord) const {
+Pair Band::directionPair(vector<Edge> const OrderedEdges, Point coord) const {
 	double min = 0, max = 0;
-	for (Edge *w : OrderedEdges) {
+	for (Edge w : OrderedEdges) {
 		double TerminalFixed = direction_isX ? coord.y : coord.x;
 		double TerminalChange = direction_isX ? coord.x : coord.y;
-		if (direction_isX == w->isVertical() && w->inRange(TerminalFixed)) {
-			if (w->fixed() > TerminalChange) {
-				max = w->fixed();
+		if (direction_isX == w.isVertical() && w.inRange(TerminalFixed)) {
+			if (w.fixed() > TerminalChange) {
+				max = w.fixed();
 				break;
 			}
-			min = w->fixed();
+			min = w.fixed();
 		}
 	}
 	return Pair(min, max);
 }
 
 bool Band::intersected(Band const *other) const {
-	//cout << " * this: [" << x.min << ", " << x.max << ", " << y.min << ", " << y.max << "]\t";
-	//cout << "that: [" << other->x.min << ", " << other->x.max << ", " << other->y.min << ", " << other->y.max << "]\n";
 	bool x_intersect = !(x.min > other->x.max || x.max < other->x.min);
 	bool y_intersect = !(y.min > other->y.max || y.max < other->y.min);
 	if (x_intersect && y_intersect) {
-		cout << "intered" << endl;
+		//cout << "intered" << endl;
+		//cout << *this << endl << *other << endl;
 		return 1;
 	}
 	return 0;
@@ -46,25 +45,25 @@ bool Band::intersected(Band const *other) const {
 
 Band* Band::extendBand(Pair x, Pair y) { return new Band(x, y, level + 1, this); }
 
-vector<Edge> Band::generateCoveredRanges(vector<Edge*> &edges, bool right) {
+vector<Edge> Band::generateCoveredRanges(vector<Edge> &edges, bool right) {
     vector<Pair> uncovered;
     vector<Edge> covered;
 
 	uncovered.push_back(this->directionPair());
 
 	if (right) { // positive search
-		cout << "  $ positive:\n";
-		for (Edge *e : edges) {
-			if (e->isVertical() == this->toExtend_isX() && e->fixed() >= this->extendedPair().max) { // verified V
+		//cout << "  $ positive:\n";
+		for (Edge e : edges) {
+			if (e.isVertical() == this->toExtend_isX() && e.fixed() >= this->extendedPair().max) { // verified V
 				addSource(e, uncovered, covered);
 				if (uncovered.empty()) break;
 			}
 		}
 	} else { // negative search
-		cout << "  $ negative:\n";
+		//cout << "  $ negative:\n";
 		for (auto it = edges.rbegin(); it != edges.rend(); ++it) {
-			Edge *e = *it;
-			if (e->isVertical() == this->toExtend_isX() && e->fixed() <= this->extendedPair().min) { // verified V
+			Edge e = *it;
+			if (e.isVertical() == this->toExtend_isX() && e.fixed() <= this->extendedPair().min) { // verified V
 				addSource(e, uncovered, covered);
 				if (uncovered.empty()) break;
 			}
@@ -72,15 +71,15 @@ vector<Edge> Band::generateCoveredRanges(vector<Edge*> &edges, bool right) {
 	}
 	sort(covered.begin(), covered.end(), [](const Edge& a, const Edge& b) { return a.ranged().min < b.ranged().min; });
 	for (auto const &c : covered) {
-		cout << "   - edge [" << c.first.x << ", " << c.second.x << "] [" << c.first.y << ", " << c.second.y << "]\n";
+		//cout << "   - edge [" << c.first.x << ", " << c.second.x << "] [" << c.first.y << ", " << c.second.y << "]\n";
 	}
 	return covered;
 }
 
-void Band::addSource(Edge *e, vector<Pair> &uncovered, vector<Edge> &covered) {
-	Pair source = e->ranged();
+void Band::addSource(Edge e, vector<Pair> &uncovered, vector<Edge> &covered) {
+	Pair source = e.ranged();
 	Pair target = this->directionPair();
-	double fixed = e->fixed();
+	double fixed = e.fixed();
 
     if (source.max <= target.min || source.min >= target.max) {
         return;  // This source is completely outside the target range
@@ -156,9 +155,13 @@ bool Band::operator <=(Band* const &other) const {
 bool Band::alreadyExist(vector<Band*> bands) {
 	for (Band* const &b : bands) {
 		if (*this <= b) {
-        	cout << " X.";
+        	//cout << " X.";
 			return 1;
 		}
 	}
 	return 0;
+}
+ostream& operator <<(ostream& os, const Band& band) {
+    os << "[" << band.x.min << ", " << band.x.max << "]" << " [" << band.y.min << ", " << band.y.max << "] " << band.level;
+    return os;
 }

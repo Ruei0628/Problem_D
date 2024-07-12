@@ -310,3 +310,16 @@ bool Band::alreadyExist(vector<Band*> bands) {
 我發現，輸出的結果不一樣，這讓我更確信一定是指標記憶體的 操作不當
 請不要吝嗇，並詳細的在看一次程式碼，檢查哪裡可能會造成指標的操作有誤
 如指標的vector操作(push_back、clear等等)，或是沒有適當delete，或是兩vector之間元素的轉移等等
+
+現在遇到的問題
+1. edge要連結到block，所以我現在在寫Edge裡面有 Block *block 這個東西 // 待確認
+2. 從chip.totEdge蒐集到的edges似乎不正確，可能很需要重新檢查一下
+3. 我現在在想那些facingflip再平移的那個地方到底有沒有問題
+4. net 的 must_through 的座標我記得好像還沒處理facingflip
+5. band search 應該是要等source bands 完全 intersect 到 level 0 的 target 才可以結束
+	在這之前所有得到的intersect的band path的可能都要記錄下來
+	band path要寫一個函式，得到確切每一條band path中的最短路徑
+	然後在這些path裡面找到最短的那一條當作最終結果
+6. 還沒處理must through 的部分
+7. 還沒處理feedthrough 一個block的時候要 through_net_num--
+8. 應該先這樣有想到再說

@@ -121,7 +121,7 @@ Chip::Chip(int const &testCase) {
     						if (singleTBENN.Size() == 3 && singleTBENN[0].IsArray() && singleTBENN[1].IsArray()) {
 								Point a(singleTBENN[0][0].GetDouble(), singleTBENN[0][1].GetDouble());
 								Point b(singleTBENN[1][0].GetDouble(), singleTBENN[1][1].GetDouble());
-    						    tempOne.edge = Edge(a,b);
+    						    tempOne.edge = Edge(a, b, &tempBlock);
     						    tempOne.net_num = singleTBENN[2].GetInt();
     						    tempBlock.through_block_edge_net_num.push_back(tempOne);
     						}
@@ -132,7 +132,7 @@ Chip::Chip(int const &testCase) {
 						for (auto const &thing : BPR.GetArray()) {
 							Point a(thing.GetArray()[0][0].GetDouble(), thing.GetArray()[0][1].GetDouble());
 							Point b(thing.GetArray()[1][0].GetDouble(), thing.GetArray()[1][1].GetDouble());
-							tempBlock.block_port_region.push_back(Edge(a,b));
+							tempBlock.block_port_region.push_back(Edge(a, b, &tempBlock));
 						}
 						break;
 					}
@@ -212,7 +212,7 @@ Chip::Chip(int const &testCase) {
 			}
 
 			// collect edges from tempBlock, and write into totEdge
-			//for (Edge &e : tempBlock.edges) { totEdge.push_back(&e); }
+			for (Edge &e : tempBlock.edges) { totEdge.push_back(e); }
 			// turn off this when testing
 
 			// write into totZone
@@ -243,14 +243,14 @@ Chip::Chip(int const &testCase) {
 	file_chip_top.close();
 
 	// Edges: already have block Edges, here adding the chip border
-	totEdge.push_back(new Edge(Point(0, 0), Point(0, border.y)));
-	totEdge.push_back(new Edge(Point(0, 0), Point(border.x, 0)));
-	totEdge.push_back(new Edge(Point(0, border.y), border));
-	totEdge.push_back(new Edge(Point(border.x, 0), border));
+	totEdge.push_back(Edge(Point(0, 0), Point(0, border.y), nullptr));
+	totEdge.push_back(Edge(Point(0, 0), Point(border.x, 0), nullptr));
+	totEdge.push_back(Edge(Point(0, border.y), border, nullptr));
+	totEdge.push_back(Edge(Point(border.x, 0), border, nullptr));
 
 	// make it ordered
 	std::sort(totEdge.begin(), totEdge.end(), 
-	[](const Edge* a, const Edge* b) { return a->fixed() < b->fixed(); });
+	[](const Edge& a, const Edge& b) { return a.fixed() < b.fixed(); });
 }
 
 Block Chip::getBlock(string blockName) const {
@@ -285,7 +285,5 @@ void Chip::showAllZones() const {
 
 Chip::~Chip() {
 	for (Zone *z : totZone) { delete z; }
-	for (Edge *e : totEdge) { delete e; }
 	totZone.clear();
-	totEdge.clear();
 }

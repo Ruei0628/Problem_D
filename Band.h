@@ -8,7 +8,7 @@ class Band {
 public: 
 	Band(){}
 	Band(Pair, Pair, int, Band*);
-	Band(Terminal, bool, vector<Edge*> const&);
+	Band(Terminal, bool, vector<Edge> const&);
 	string zoneName = "";
 
 	Band *parent = nullptr;
@@ -27,16 +27,16 @@ public:
 	}
 
 	// member fuctions
-	Pair directionPair(vector<Edge*> const edges, Point coord) const;
+	Pair directionPair(vector<Edge> const edges, Point coord) const;
 	bool intersected(Band const *other) const;
 
 	Band *extendBand(Pair, Pair);
-	vector<Edge> generateCoveredRanges(vector<Edge*> &edges, bool right);
-	void addSource(Edge *edge, vector<Pair> &uncovered, vector<Edge> &covered);
+	vector<Edge> generateCoveredRanges(vector<Edge> &edges, bool right);
+	void addSource(Edge edge, vector<Pair> &uncovered, vector<Edge> &covered);
 	vector<Band*> mergeCoveredRanges(vector<Edge> const &left, vector<Edge> const &right);
 
 	bool operator <=(Band* const &other) const;
-	bool operator <<(ostream const &o) const;
+	friend ostream& operator<<(ostream& os, const Band& b);
 	bool alreadyExist(vector<Band*> bands);
 };
 
