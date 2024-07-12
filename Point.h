@@ -34,6 +34,10 @@ public:
     bool operator ==(const Pair &other) const {
     	return (min == other.min && max == other.max);
     }
+
+	bool operator <=(const Pair &other) const {
+		return (min >= other.min && max <= other .max);
+	}
 };
 
 #endif // POINT_H_INCLUDE

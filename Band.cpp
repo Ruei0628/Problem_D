@@ -2,7 +2,7 @@
 #include <vector>
 
 Band::Band(Pair X, Pair Y, int Level, Band *Parent) : x(X), y(Y), level(Level), parent(Parent) {
-	// uses in extendBand
+	direction_isX = !Parent->direction_isX;
 }
 
 Band::Band(Terminal terminal, bool direction_isX, vector<Edge*> const &edges)
@@ -46,14 +46,14 @@ bool Band::intersected(Band const *other) const {
 
 Band* Band::extendBand(Pair x, Pair y) { return new Band(x, y, level + 1, this); }
 
-vector<CoveredRange> Band::generateCoveredRanges(vector<Edge*> &edges, bool right) {
+vector<Edge> Band::generateCoveredRanges(vector<Edge*> &edges, bool right) {
     vector<Pair> uncovered;
-    vector<CoveredRange> covered;
+    vector<Edge> covered;
 
 	uncovered.push_back(this->directionPair());
 
 	if (right) { // positive search
-		cout << "(+)positive:\n";
+		cout << "  $ positive:\n";
 		for (Edge *e : edges) {
 			if (e->isVertical() == this->toExtend_isX() && e->fixed() >= this->extendedPair().max) { // verified V
 				addSource(e, uncovered, covered);
@@ -61,7 +61,7 @@ vector<CoveredRange> Band::generateCoveredRanges(vector<Edge*> &edges, bool righ
 			}
 		}
 	} else { // negative search
-		cout << "(-)negative:\n";
+		cout << "  $ negative:\n";
 		for (auto it = edges.rbegin(); it != edges.rend(); ++it) {
 			Edge *e = *it;
 			if (e->isVertical() == this->toExtend_isX() && e->fixed() <= this->extendedPair().min) { // verified V
@@ -70,14 +70,14 @@ vector<CoveredRange> Band::generateCoveredRanges(vector<Edge*> &edges, bool righ
 			}
 		}
 	}
-	sort(covered.begin(), covered.end(), [](const CoveredRange& a, const CoveredRange& b) { return a.range.min < b.range.min; });
-	for (const auto& cr : covered) {
-        cout << "   > Pair(" << cr.range.min << ", " << cr.range.max << "), " << cr.fixed << endl;
-    }
+	sort(covered.begin(), covered.end(), [](const Edge& a, const Edge& b) { return a.ranged().min < b.ranged().min; });
+	for (auto const &c : covered) {
+		cout << "   - edge [" << c.first.x << ", " << c.second.x << "] [" << c.first.y << ", " << c.second.y << "]\n";
+	}
 	return covered;
 }
 
-void Band::addSource(Edge *e, vector<Pair> &uncovered, vector<CoveredRange> &covered) {
+void Band::addSource(Edge *e, vector<Pair> &uncovered, vector<Edge> &covered) {
 	Pair source = e->ranged();
 	Pair target = this->directionPair();
 	double fixed = e->fixed();
@@ -90,12 +90,12 @@ void Band::addSource(Edge *e, vector<Pair> &uncovered, vector<CoveredRange> &cov
     source.max = min(source.max, target.max);
 
     vector<Pair> newUncovered;
-    vector<CoveredRange> newCovered;
+    vector<Edge> newCovered;
 
     for (const auto& uncoveredRange : uncovered) {
         if (source.min <= uncoveredRange.min && source.max >= uncoveredRange.max) {
             // This uncovered range is completely covered
-            newCovered.push_back(CoveredRange(uncoveredRange, fixed));
+            newCovered.push_back(Edge(uncoveredRange, fixed));
         } else if (source.max <= uncoveredRange.min || source.min >= uncoveredRange.max) {
             // This uncovered range is not affected
             newUncovered.push_back(uncoveredRange);
@@ -103,7 +103,7 @@ void Band::addSource(Edge *e, vector<Pair> &uncovered, vector<CoveredRange> &cov
             // Partial overlap
             if (source.min > uncoveredRange.min) { newUncovered.push_back(Pair(uncoveredRange.min, source.min)); }
             if (source.max < uncoveredRange.max) { newUncovered.push_back(Pair(source.max, uncoveredRange.max)); }
-            newCovered.push_back(CoveredRange(Pair(max(source.min, uncoveredRange.min), min(source.max, uncoveredRange.max)), fixed));
+            newCovered.push_back(Edge(Pair(max(source.min, uncoveredRange.min), min(source.max, uncoveredRange.max)), fixed));
         }
     }
 
@@ -111,20 +111,20 @@ void Band::addSource(Edge *e, vector<Pair> &uncovered, vector<CoveredRange> &cov
     for (const auto& range : newCovered) { covered.push_back(range); }
 }
 
-vector<Band*> Band::mergeCoveredRanges(const vector<CoveredRange>& left, const vector<CoveredRange>& right) {
+vector<Band*> Band::mergeCoveredRanges(const vector<Edge>& left, const vector<Edge>& right) {
     vector<Band*> result;
     size_t i = 0, j = 0;
-    double currentMin = min(left[0].range.min, right[0].range.min);
+    double currentMin = min(left[0].ranged().min, right[0].ranged().min);
     double leftParameter = -1, rightParameter = -1;
 
     while (i < left.size() || j < right.size()) {
         double nextSplitPoint = 9999;
         
-        if (i < left.size()) { nextSplitPoint = min(nextSplitPoint, left[i].range.max); }
-        if (j < right.size()) { nextSplitPoint = min(nextSplitPoint, right[j].range.max); }
+        if (i < left.size()) { nextSplitPoint = min(nextSplitPoint, left[i].ranged().max); }
+        if (j < right.size()) { nextSplitPoint = min(nextSplitPoint, right[j].ranged().max); }
 
-        if (i < left.size() && left[i].range.min <= currentMin) { leftParameter = left[i].fixed; }
-        if (j < right.size() && right[j].range.min <= currentMin) { rightParameter = right[j].fixed; }
+        if (i < left.size() && left[i].ranged().min <= currentMin) { leftParameter = left[i].fixed(); }
+        if (j < right.size() && right[j].ranged().min <= currentMin) { rightParameter = right[j].fixed(); }
 
         if (leftParameter != -1 && rightParameter != -1) {
 			if (toExtend_isX()) { // the extendedBand's direction is X
@@ -136,11 +136,11 @@ vector<Band*> Band::mergeCoveredRanges(const vector<CoveredRange>& left, const v
 
         currentMin = nextSplitPoint;
 
-        if (i < left.size() && left[i].range.max == currentMin) {
+        if (i < left.size() && left[i].ranged().max == currentMin) {
             leftParameter = -1;
             i++;
         }
-        if (j < right.size() && right[j].range.max == currentMin) {
+        if (j < right.size() && right[j].ranged().max == currentMin) {
             rightParameter = -1;
             j++;
         }
@@ -149,15 +149,14 @@ vector<Band*> Band::mergeCoveredRanges(const vector<CoveredRange>& left, const v
     return result;
 }
 
-bool Band::operator ==(Band* const other) const {
-	return this->x == other->x && this->y == other->y;
+bool Band::operator <=(Band* const &other) const {
+	return this->x <= other->x && this->y <= other->y;
 }
 
 bool Band::alreadyExist(vector<Band*> bands) {
-	for (Band* const b : bands) {
-		if (*this == b) {
-        	cout << "x: [" << b->x.min << ", " << b->x.max << "]";
-        	cout << " y: [" << b->y.min << ", " << b->y.max << "]" << endl;
+	for (Band* const &b : bands) {
+		if (*this <= b) {
+        	cout << " X.";
 			return 1;
 		}
 	}

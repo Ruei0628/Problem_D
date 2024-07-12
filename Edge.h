@@ -11,6 +11,7 @@ using namespace std;
 class Edge {
 public:
 	Edge(){}
+	Edge(Pair r, double f) : first(Point(r.min, f)), second(Point(r.max, f)) { /* use in CoveredRange */ }
 	Edge(Point First, Point Second) : first(First), second(Second) {}
 
 	Point first, second;

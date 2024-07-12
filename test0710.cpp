@@ -1,81 +1,116 @@
 #include <iostream>
 #include <vector>
 #include <utility>
-#include <algorithm>
 
 using namespace std;
 
 class Pair {
 public:
     double min, max;
-	int level;
+    Pair *parent;
 
-    Pair() : min(0), max(0) {}
-    Pair(double Min, double Max) {
-        this->min = std::min(Min, Max);
-        this->max = std::max(Min, Max);
+    Pair() : min(0), max(0), parent(nullptr) {}
+    Pair(double Min, double Max, Pair *Parent) : min(Min), max(Max), parent(Parent) {}
+
+    Pair* extendPair(double d) {
+        return new Pair(this->min + d, this->max + 1, this);
     }
 
-    void operator=(Pair const &other) {
-        this->min = other.min;
-        this->max = other.max;
-    }
+	bool operator ==(Pair* const &that) {
+		return this->min == that->min;
+	}
 
-    bool operator ==(const Pair &other) const {
-    	return (min == other.min && max == other.max);
+    bool existed(vector<Pair*> pairs) {
+        for (Pair* p : pairs) {
+            if (this->min == p->min) {
+                cout << " rejected.";
+                return 1;
+            }
+        }
+        return 0;
     }
 };
 
-void test(){
-	vector<Pair*> Old = {};
-	vector<Pair*> Current;
-	
-	Current.push_back(new Pair(0, 0));
-	double index = 0;
-	int iter = 0;
-	while(1) {
-		cout << "iter: " << iter << endl;
-		Old.insert(Old.end(), Current.begin(), Current.end());
+void test() {
+    vector<Pair*> OldPair;
+    vector<Pair*> Current;
 
-		vector<Pair*> Extended;
-		for(size_t i = 0; i<2; i++){
-			vector<Pair*> tempExtended;
-			tempExtended.push_back(new Pair(index, index));
-			index++;
-			tempExtended.push_back(new Pair(index, index));
-			for (Pair* &te : tempExtended) {
-				for (Pair* &c : Extended) {
-					if ( te == c) {
-						delete te;
-						continue;
-					}
-				}
-				for (Pair* &c : Current) {
-					if ( te == c) {
-						delete te;
-						continue;
-					}
-				}
-				Extended.push_back(te);
-			}
-		}
+    Current.push_back(new Pair(0, 0, nullptr));
 
-		for (Pair *b : Current) { delete b; }
-		Current.clear();
+    double index = 0;
+    int iter = 0;
+    
+	Pair *trace = nullptr;
 
-		// 然後把ESB、ETB的資料存入CSB、CTB裡面
-		Current = std::move(Extended);
+    while(1) {
+        cout << "iter: " << iter++ << endl;
 
-		cout << "> Current:\n";
-		for (auto const &pp : Current) cout << pp->min << ", " << pp->max << endl;
-		cout << "> Old:\n";
-		for (auto const &pp : Old) cout << pp->min << ", " << pp->max << endl;
-		iter++;
-		if (iter > 5) return;
-	}
+		bool find = 0;
+        for(auto const &o : OldPair){
+            if (o->min > 10) {
+                trace = o;
+				find = 1;
+                break;
+            }
+        }
+		if (find) break;
+
+        for (auto &c : Current) { OldPair.push_back(c); }
+
+        vector<Pair*> Extended;
+
+        for(auto &c : Current) {
+            vector<Pair*> tempExtended;
+            tempExtended.push_back(c->extendPair(1));
+            tempExtended.push_back(c->extendPair(2));
+            tempExtended.push_back(c->extendPair(3));
+
+            for (Pair* te : tempExtended) {
+                cout << " + adding " << te->min << ", " << te->max;
+                if (te->existed(OldPair) || te->existed(Current) || te->existed(Extended)) {
+                    cout << endl;
+                    delete te; // 避免記憶體洩漏
+                    continue;
+                }
+                Extended.push_back(te);
+                cout << endl;
+            }
+        }
+
+        //for (auto &c : Current) { delete c; }
+		//cout << "哇操牛逼";
+        Current.clear();
+
+        Current = std::move(Extended);
+
+        cout << "Current:\n";
+        for (auto const &pp : Current) cout << " > " << pp->min << ", " << pp->max << endl;
+        cout << "OldPair:\n";
+        for (auto const &pp : OldPair) cout << " > " << pp->min << ", " << pp->max << endl;
+        if (iter > 10) break;
+        cout << "================================\n";
+    }
+
+    cout << "*** complete test ***\n";
+    while (trace) {
+        cout << trace->min;
+        if (trace->parent) cout << " > ";
+        trace = trace->parent;
+    }
+
+    // 清理動態分配的記憶體
+	delete trace;
+    for (auto &o : OldPair) { delete o; }
+    for (auto &c : Current) { delete c; }
 }
 
 int main() {
-	test();
+    //test();
+	Pair *a = new Pair(1, 0, nullptr);
+	Pair *b = new Pair(1, 1, a);
+	Pair aPrime = *a;
+	
+	if (aPrime == b) cout << "yes\n";
+    cout << "\ndone";
     return 0;
 }

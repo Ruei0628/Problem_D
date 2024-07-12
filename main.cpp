@@ -20,12 +20,12 @@ bool checkIfIntersect(Band *source, Band *target, vector<Band*> &compairer, vect
 
 void printBands(const vector<Band*>& bands) {
     for (const auto& band : bands) {
-        cout << "x: [" << band->x.min << ", " << band->x.max << "]";
-        cout << " y: [" << band->y.min << ", " << band->y.max << "]" << endl;
+        cout << " > [" << band->x.min << ", " << band->x.max << "]";
+        cout << " [" << band->y.min << ", " << band->y.max << "] " << band->level << endl;
     }
 }
 
-void bandSearchAlgorithm(Net &net, Chip &chip, vector<Band*> &recordPath){
+void bandSearchAlgorithm(Net &net, Chip &chip, vector<Band*> &recordPath) {
 	cout << "Start band search!" << endl;
 
 	//step 1: initializaiotn
@@ -57,18 +57,18 @@ void bandSearchAlgorithm(Net &net, Chip &chip, vector<Band*> &recordPath){
 	Band* sourceBandsBackTrace = nullptr;
 	Band* targetBandsBackTrace = nullptr;
 
-	cout << "step 1 complete\n";
+	//cout << "step 1 complete\n";
 
 	int levelOfIteration = 0;
 	while (1) {
-		cout << "*** levelOfIteration: " << ++levelOfIteration << " ***\n";
+		cout << "=== level Of Iteration: " << ++levelOfIteration << " ===\n";
 		
 		// step 2: check if intersect 
 		if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, CSB, CTB)) break;
 		if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, CSB, OTB)) break;
 		if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, OSB, CTB)) break;
 		
-		cout << "step 2 complete\n";
+		//cout << "step 2 complete\n";
 
 		// step 3: copy CSB to OSB; copy CTB to OTB
 		// current 的點要存回去 old
@@ -77,7 +77,7 @@ void bandSearchAlgorithm(Net &net, Chip &chip, vector<Band*> &recordPath){
 
 		// current 的資料應該不能刪掉，因為還要 extend
 		// 只是在這之後(、被清除之前)調用 current bands 應該只能 const *
-		cout << "step 3 complete\n";
+		//cout << "step 3 complete\n";
 
 		// step 4. 生成與 current bands 垂直的 extendedProbes，並先把他們暫存在一個 vector 裡面
 		// 要分成 from source 跟 from target
@@ -85,40 +85,54 @@ void bandSearchAlgorithm(Net &net, Chip &chip, vector<Band*> &recordPath){
 		vector<Band*> ETB; // stands for extended target bands
 		// 這些生成出來的 bands 的 level 要 +1
 
-		cout << " * from source:\n";
+		cout << "< from source >\n";
 		for (Band *b : CSB) { // 來自 source
-			vector<CoveredRange> coverageRight = b->generateCoveredRanges(edges, 1);
-			vector<CoveredRange> coverageLeft = b->generateCoveredRanges(edges, 0);
+        	cout << " # band [" << b->x.min << ", " << b->x.max << "]";
+        	cout << " [" << b->y.min << ", " << b->y.max << "] " << endl;
+
+			vector<Edge> coverageRight = b->generateCoveredRanges(edges, 1);
+			vector<Edge> coverageLeft = b->generateCoveredRanges(edges, 0);
 
 			vector<Band*> tempESB = b->mergeCoveredRanges(coverageLeft, coverageRight);
 			for (Band *esb : tempESB) {
+                cout << "  + adding [" << esb->x.min << ", " << esb->x.max << "] [" << esb->y.min << ", " << esb->y.max << "]";
 				if (esb->alreadyExist(OSB) || esb->alreadyExist(CSB) || esb->alreadyExist(ESB)) {
+					cout << endl;
 					delete esb;
 					continue;
 				}
 				ESB.push_back(esb);
+				cout << endl;
 			}
+			cout << endl;
 		}
 
-		cout << " * from target:\n";
+		cout << "< from target >\n";
 		for (Band *b : CTB) { // 來自 target
-			vector<CoveredRange> coverageRight = b->generateCoveredRanges(edges, 1);
-			vector<CoveredRange> coverageLeft = b->generateCoveredRanges(edges, 0);
+        	cout << " # band [" << b->x.min << ", " << b->x.max << "]";
+        	cout << " [" << b->y.min << ", " << b->y.max << "] " << endl;
+
+			vector<Edge> coverageRight = b->generateCoveredRanges(edges, 1);
+			vector<Edge> coverageLeft = b->generateCoveredRanges(edges, 0);
 
 			vector<Band*> tempETB = b->mergeCoveredRanges(coverageLeft, coverageRight);
 			for (Band *etb : tempETB) {
+                cout << "  + adding [" << etb->x.min << ", " << etb->x.max << "] [" << etb->y.min << ", " << etb->y.max << "]";
 				if (etb->alreadyExist(OTB) || etb->alreadyExist(CTB) || etb->alreadyExist(ETB)) {
+					cout << endl;
 					delete etb;
 					continue;
 				}
 				ETB.push_back(etb);
+				cout << endl;
 			}
+			cout << endl;
 		}
 
 		// 因此我們現在獲得了全部的下一個 level 的 bands (在 extendedBands 裡)
 		// 接下來要將CSB、CTB的資料刪除
-		for (Band *b : CSB) { delete b; }
-		for (Band *b : CTB) { delete b; }
+		//for (Band *b : CSB) { delete b; }
+		//for (Band *b : CTB) { delete b; }
 		CSB.clear();
 		CTB.clear();
 
@@ -130,9 +144,14 @@ void bandSearchAlgorithm(Net &net, Chip &chip, vector<Band*> &recordPath){
 		printBands(CSB);
 		cout << "> CTB:\n";
 		printBands(CTB);
+		cout << "> OSB:\n";
+		printBands(OSB);
+		cout << "> OTB:\n";
+		printBands(OTB);
 
-		cout << "step 4 complete\n";
-		if (levelOfIteration == 3) return;
+		//cout << "step 4 complete\n";
+		cout << endl;
+		if (levelOfIteration == 5) return;
 	}
 
 	// Step 5: Backtrace

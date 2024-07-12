@@ -4,13 +4,6 @@
 #include "Chip.h"
 #include "Net.h"
 
-struct CoveredRange {
-    Pair range;
-    double fixed;
-
-    CoveredRange(Pair r, double p) : range(r), fixed(p) {}
-};
-
 class Band {
 public: 
 	Band(){}
@@ -38,11 +31,12 @@ public:
 	bool intersected(Band const *other) const;
 
 	Band *extendBand(Pair, Pair);
-	vector<CoveredRange> generateCoveredRanges(vector<Edge*> &edges, bool right);
-	void addSource(Edge *edge, vector<Pair> &uncovered, vector<CoveredRange> &covered);
-	vector<Band*> mergeCoveredRanges(vector<CoveredRange> const &left, vector<CoveredRange> const &right);
+	vector<Edge> generateCoveredRanges(vector<Edge*> &edges, bool right);
+	void addSource(Edge *edge, vector<Pair> &uncovered, vector<Edge> &covered);
+	vector<Band*> mergeCoveredRanges(vector<Edge> const &left, vector<Edge> const &right);
 
-	bool operator ==(Band* const other) const;
+	bool operator <=(Band* const &other) const;
+	bool operator <<(ostream const &o) const;
 	bool alreadyExist(vector<Band*> bands);
 };
 
