@@ -9,7 +9,7 @@ public:
 	Band(){}
 	Band(Pair, Pair, int, Band*);
 	Band(Terminal, bool, vector<Edge> const&);
-	string zoneName = "";
+	string terminalName = "";
 
 	Band *parent = nullptr;
 	int level = 0;
@@ -27,12 +27,12 @@ public:
 	}
 
 	// member fuctions
-	Pair directionPair(vector<Edge> const edges, Point coord) const;
+	Pair directionPair(vector<Edge> const &edges, Point coord) const;
 	bool intersected(Band const *other) const;
 
 	Band *extendBand(Pair, Pair);
 	vector<Edge> generateCoveredRanges(vector<Edge> &edges, bool right);
-	void addSource(Edge edge, vector<Pair> &uncovered, vector<Edge> &covered);
+	void addSource(const Edge &edge, vector<Pair> &uncovered, vector<Edge> &covered);
 	vector<Band*> mergeCoveredRanges(vector<Edge> const &left, vector<Edge> const &right);
 
 	bool operator <=(Band* const &other) const;

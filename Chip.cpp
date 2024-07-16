@@ -1,5 +1,6 @@
 #include "Chip.h"
 #include "Edge.h"
+#include <memory>
 
 using namespace std;
 
@@ -64,7 +65,7 @@ Chip::Chip(int const &testCase) {
 	regex getBlockName(R"(BLOCK_\d+)");
 	regex getBlkID(R"(blk_\d+)");
 	regex getCoordinate(R"(\(\s*([\d.]+)\s+([\d.]+)\s*\))");
-	
+
 	string startWithRegion = "- REGION_";
 	regex getRegionName(R"(REGION_\d+)");
 
@@ -94,11 +95,11 @@ Chip::Chip(int const &testCase) {
 		}
 
 		// read block informations
-		Block tempBlock;
+		unique_ptr<Block> tempBlock = make_unique<Block>();
 		if (line.find(startWithBlock) == 0) {
 			// blockName
 			if (regex_search(line, m, getBlockName)) {
-				tempBlock.name = m.str();
+				tempBlock->name = m.str();
 				// Open caseOO_cfg.json to get
 				// through_block_net_num, through_block_edge_net_num
 				// block_port_region, is_feedthroughable, is_tile
@@ -109,10 +110,10 @@ Chip::Chip(int const &testCase) {
 				Document document;
 				document.Parse(jsonString.c_str());
 				for (const auto &block : document.GetArray()) {
-					if (tempBlock.name == block["block_name"].GetString()) {
-						tempBlock.through_block_net_num = block["through_block_net_num"].GetInt();
-						tempBlock.is_feedthroughable = block["is_feedthroughable"].GetString() == string("True");
-						tempBlock.is_tile = block["is_tile"].GetString() == string("True");
+					if (tempBlock->name == block["block_name"].GetString()) {
+						tempBlock->through_block_net_num = block["through_block_net_num"].GetInt();
+						tempBlock->is_feedthroughable = block["is_feedthroughable"].GetString() == string("True");
+						tempBlock->is_tile = block["is_tile"].GetString() == string("True");
 
 						// through_block_edge_net_num
 						const Value &TBENN = block["through_block_edge_net_num"];
@@ -121,9 +122,9 @@ Chip::Chip(int const &testCase) {
     						if (singleTBENN.Size() == 3 && singleTBENN[0].IsArray() && singleTBENN[1].IsArray()) {
 								Point a(singleTBENN[0][0].GetDouble(), singleTBENN[0][1].GetDouble());
 								Point b(singleTBENN[1][0].GetDouble(), singleTBENN[1][1].GetDouble());
-    						    tempOne.edge = Edge(a, b, &tempBlock);
+    						    tempOne.edge = Edge(a, b); /*not sure*/
     						    tempOne.net_num = singleTBENN[2].GetInt();
-    						    tempBlock.through_block_edge_net_num.push_back(tempOne);
+    						    tempBlock->through_block_edge_net_num.push_back(tempOne); /*here*/
     						}
 						}
 
@@ -132,7 +133,7 @@ Chip::Chip(int const &testCase) {
 						for (auto const &thing : BPR.GetArray()) {
 							Point a(thing.GetArray()[0][0].GetDouble(), thing.GetArray()[0][1].GetDouble());
 							Point b(thing.GetArray()[1][0].GetDouble(), thing.GetArray()[1][1].GetDouble());
-							tempBlock.block_port_region.push_back(Edge(a, b, &tempBlock));
+							tempBlock->block_port_region.push_back(Edge(a, b)); /*not sure*/
 						}
 						break;
 					}
@@ -142,10 +143,10 @@ Chip::Chip(int const &testCase) {
 
 			// blkID
 			if (regex_search(line, m, getBlkID)) {
-				tempBlock.blkID = m.str();
+				tempBlock->blkID = m.str();
 
 				// Open blk file to get vertices
-				ifstream file_blk("cad_case0" + to_string(testCase) + "/case0" + to_string(testCase) + "/" + tempBlock.blkID + ".def");
+				ifstream file_blk("cad_case0" + to_string(testCase) + "/case0" + to_string(testCase) + "/" + tempBlock->blkID + ".def");
 				int lineNum = 1;
 				string verticesInfo;
 				while (getline(file_blk, verticesInfo)) {
@@ -161,11 +162,10 @@ Chip::Chip(int const &testCase) {
 					double y = stod(match[2].str());
 					x /= UNITS_DISTANCE_MICRONS;
 					y /= UNITS_DISTANCE_MICRONS;
-					tempBlock.vertices.push_back(Point(x, y));
+					tempBlock->vertices.push_back(Point(x, y));
 					++iter;
 				}
-				if (tempBlock.vertices.size() == 2) tempBlock.expandVertices();
-				tempBlock.verticesToEdges();
+				if (tempBlock->vertices.size() == 2) tempBlock->expandVertices();
 			}
 
 			// getCoordinate
@@ -174,49 +174,52 @@ Chip::Chip(int const &testCase) {
 				double y = stod(m[2]);
 				x /= UNITS_DISTANCE_MICRONS;
 				y /= UNITS_DISTANCE_MICRONS;
-				tempBlock.coordinate = Point(x, y);
+				tempBlock->coordinate = Point(x, y);
 			}
 
 			// getFacingFlip
-			tempBlock.facingFlip = line.substr(line.length() - 4, 2);	
+			tempBlock->facingFlip = line.substr(line.length() - 4, 2);
 			// do facingAndFlip
-			facingAndFlip(tempBlock.vertices, tempBlock.facingFlip);
-			
-			for (BlockEdgeAndNum &TBENN : tempBlock.through_block_edge_net_num) {
+			facingAndFlip(tempBlock->vertices, tempBlock->facingFlip);
+
+			for (BlockEdgeAndNum &TBENN : tempBlock->through_block_edge_net_num) {
 				vector<Point> convert = edgeToPoint(TBENN.edge);
-				facingAndFlip(convert, tempBlock.facingFlip);
+				facingAndFlip(convert, tempBlock->facingFlip);
 				TBENN.edge.first = convert[0];
 				TBENN.edge.second = convert[1];
 			}
-			for (Edge &BPR : tempBlock.block_port_region) {
+			for (Edge &BPR : tempBlock->block_port_region) {
 				vector<Point> convert = edgeToPoint(BPR);
-				facingAndFlip(convert, tempBlock.facingFlip);
-				BPR.first = convert[0];
-				BPR.second = convert[1];
-			}
-			
-			// do shiftCoordinate
-			shiftCoordinate(tempBlock.vertices, tempBlock.coordinate);
-			
-			for (BlockEdgeAndNum &TBENN : tempBlock.through_block_edge_net_num) {
-				vector<Point> convert = edgeToPoint(TBENN.edge);
-				shiftCoordinate(convert, tempBlock.coordinate);
-				TBENN.edge.first = convert[0];
-				TBENN.edge.second = convert[1];
-			}
-			for (Edge &BPR : tempBlock.block_port_region) {
-				vector<Point> convert = edgeToPoint(BPR);
-				shiftCoordinate(convert, tempBlock.coordinate);
+				facingAndFlip(convert, tempBlock->facingFlip);
 				BPR.first = convert[0];
 				BPR.second = convert[1];
 			}
 
+			// do shiftCoordinate
+			shiftCoordinate(tempBlock->vertices, tempBlock->coordinate);
+
+			for (BlockEdgeAndNum &TBENN : tempBlock->through_block_edge_net_num) {
+				vector<Point> convert = edgeToPoint(TBENN.edge);
+				shiftCoordinate(convert, tempBlock->coordinate);
+				TBENN.edge.first = convert[0];
+				TBENN.edge.second = convert[1];
+			}
+			for (Edge &BPR : tempBlock->block_port_region) {
+				vector<Point> convert = edgeToPoint(BPR);
+				shiftCoordinate(convert, tempBlock->coordinate);
+				BPR.first = convert[0];
+				BPR.second = convert[1];
+			}
+
+			// store the fliped and shifted vertices into edges
+			tempBlock->verticesToEdges();
+
 			// collect edges from tempBlock, and write into totEdge
-			for (Edge &e : tempBlock.edges) { totEdge.push_back(e); }
+			for (Edge &e : tempBlock->edges) { allEdges.push_back(e); }
 			// turn off this when testing
 
 			// write into totZone
-			totZone.push_back(new Block(tempBlock));
+			allBlocks.push_back(std::move(tempBlock));
 		}
 
 		// read region information
@@ -237,53 +240,40 @@ Chip::Chip(int const &testCase) {
 				++iter;
 			}
 			tempRegion.expandVertices();
-			totZone.push_back(new Region(tempRegion));
+			allRegions.push_back(Region(std::move(tempRegion)));
 		}
 	}
 	file_chip_top.close();
 
-	// Edges: already have block Edges, here adding the chip border
-	totEdge.push_back(Edge(Point(0, 0), Point(0, border.y), nullptr));
-	totEdge.push_back(Edge(Point(0, 0), Point(border.x, 0), nullptr));
-	totEdge.push_back(Edge(Point(0, border.y), border, nullptr));
-	totEdge.push_back(Edge(Point(border.x, 0), border, nullptr));
+	// Edges: already have block Edges
+	// here adding the chip border
+	unique_ptr<Block> BORDER = make_unique<Block>("border");
+	BORDER->vertices = { Point(0, 0), Point(0, border.y), border, Point(border.x, 0) };
+	BORDER->verticesToEdges();
+	for (Edge &e : BORDER->edges) { allEdges.push_back(e); }
+	allBlocks.push_back(std::move(BORDER));
 
 	// make it ordered
-	std::sort(totEdge.begin(), totEdge.end(), 
-	[](const Edge& a, const Edge& b) { return a.fixed() < b.fixed(); });
+	std::sort(allEdges.begin(), allEdges.end(), [](const auto& a, const auto& b) { return a.fixed() < b.fixed(); });
 }
 
 Block Chip::getBlock(string blockName) const {
-	for (Zone *z : totZone) {
-		if (Block *bPtr = dynamic_cast<Block *>(z)) {
-			if (bPtr->name == blockName) return *bPtr;
-		}
-	}
-	return Block();
+    for (auto const &b : allBlocks) {
+        if (b->name == blockName) return *b;
+    }
+    return Block();
 }
 
 Region Chip::getRegion(string regionName) const {
-	for (Zone *z : totZone) {
-		if (Region *rPtr = dynamic_cast<Region *>(z)) {
-			if (rPtr->name == regionName) return *rPtr;
-		}
+	for (auto const &r : allRegions) {
+		if (r.name == regionName) return r;
 	}
 	return Region();
 }
 
 void Chip::showAllZones() const {
-	for (Zone *z : totZone) {
-		if (Block *bPtr = dynamic_cast<Block *>(z)) {
-			if (bPtr->vertices.size() == 4) {
-				bPtr->showBlockInfo();
-			}
-		} else if (Region *rPtr = dynamic_cast<Region *>(z)) {
-			//rPtr->showRegionInfo();
-		}
-	}
+	for (auto const &b : allBlocks) { b->showBlockInfo(); }
+	for (auto const &r : allRegions) { r.showRegionInfo(); }
 }
 
-Chip::~Chip() {
-	for (Zone *z : totZone) { delete z; }
-	totZone.clear();
-}
+Chip::~Chip() {}

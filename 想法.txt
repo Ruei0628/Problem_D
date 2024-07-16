@@ -323,3 +323,116 @@ bool Band::alreadyExist(vector<Band*> bands) {
 6. 還沒處理must through 的部分
 7. 還沒處理feedthrough 一個block的時候要 through_net_num--
 8. 應該先這樣有想到再說
+
+我有一些指標無法正確存取的問題
+以下是我程式的架構，共有Employee、Office、Company與main這些
+
+** Employee.h
+#ifndef EMPLOYEE_H
+#define EMPLOYEE_H
+
+#include <string>
+
+class Office; // 前向声明
+
+class Employee {
+public:
+    Employee(std::string n, int i);
+    std::string name;
+    int ID;
+    Office* office; // 指向所属 Office 的指针
+};
+
+#endif // EMPLOYEE_H
+
+** Employee.cpp
+#include "Employee.h"
+
+Employee::Employee(std::string n, int i) : name(n), ID(i), office(nullptr) {}
+
+** Office.h
+#ifndef OFFICE_H
+#define OFFICE_H
+
+#include <vector>
+#include <string>
+#include "Employee.h"
+
+class Office {
+public:
+    Office(std::string addr);
+    std::string address;
+    std::vector<Employee> employees;
+
+    Employee addedEmployee(std::string n, int i);
+};
+
+#endif // OFFICE_H
+
+** Office.cpp
+#include "Office.h"
+
+Office::Office(std::string addr) : address(addr) {}
+
+Employee Office::addedEmployee(std::string n, int i) {
+    Employee newEmployee(n, i);
+    newEmployee.office = this; // 设置 office 指针
+    employees.push_back(newEmployee);
+    return newEmployee;
+}
+
+** Company.h
+#ifndef COMPANY_H
+#define COMPANY_H
+
+#include <vector>
+#include "Office.h"
+
+class Company {
+public:
+    void setAllOffices();
+    void addOffice(Office& office);
+
+    std::vector<Office> allOffices;
+    std::vector<Employee> allEmployees;
+};
+
+#endif // COMPANY_H
+
+** Company.cpp
+#include "Company.h"
+#include <string>
+
+void Company::setAllOffices() {
+    for (int i = 0; i < 3; i++) {
+        std::string office_addr(1, 'G' + i);
+        Office tempOffice(office_addr);
+        for (int j = 0; j < 3; j++) {
+            std::string employee_name = office_addr + "_emp_" + std::to_string(j);
+            Employee newEmployee = tempOffice.addedEmployee(employee_name, j);
+            allEmployees.push_back(newEmployee); // 添加到 allEmployees
+        }
+        addOffice(tempOffice);
+    }
+}
+
+void Company::addOffice(Office& office) {
+    allOffices.push_back(office);
+}
+
+** main.cpp
+#include <iostream>
+#include "Company.h"
+
+int main() {
+    Company company;
+    company.setAllOffices();
+
+    for (const Employee& emp : company.allEmployees) {
+        std::cout << "Employee: " << emp.name << ", Office Address: " << emp.office->address << std::endl;
+    }
+
+    return 0;
+}
+
+在執行到main中的印出emp.office->address時，會無法印出東西，或直接結束程式，請問要如何修改？

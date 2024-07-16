@@ -9,7 +9,7 @@ Region::Region(Region const &r) {
 	this->vertices = r.vertices;
 }
 
-void Region::showRegionInfo() {
+void Region::showRegionInfo() const {
 	cout << name << endl;
 	for (Point v : vertices) {
 		cout << "(" << v.x << ", " << v.y << ")" << endl;

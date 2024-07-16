@@ -1,29 +1,38 @@
 #include "Block.h"
 
-Block::Block() {}
+Block::Block(){}
+
+Block::Block(string border) {
+	this->name = border;
+	this->is_feedthroughable = 0;
+}
 
 Block::Block(Block const &b) {
 	this->name = b.name;
-	this->blkID = b.blkID;
-	this->coordinate = b.coordinate;
 	this->vertices = b.vertices;
+
+	this->coordinate = b.coordinate;
 	this->facingFlip = b.facingFlip;
+	this->blkID = b.blkID;
 
 	this->through_block_net_num = b.through_block_net_num;
 	this->through_block_edge_net_num = b.through_block_edge_net_num;
 	this->block_port_region = b.block_port_region;
 	this->is_feedthroughable = b.is_feedthroughable;
 	this->is_tile = b.is_tile;
+	this->edges = b.edges;
 }
 
 void Block::verticesToEdges() {
   	//if (b.is_feedthroughable) return; // should be revise, TODO!!
 	for (int i = 0; i < vertices.size(); i++) {
-		edges.push_back(Edge(vertices[i], vertices[(i + 1) % vertices.size()], this));
+		Edge newEdge(vertices[i], vertices[(i + 1) % vertices.size()]);
+		newEdge.block = this;
+		edges.push_back(newEdge);
 	}
 }
 
-void Block::showBlockInfo() {
+void Block::showBlockInfo() const {
 	cout << "blockName: '" << name << "'" << endl
 	<< "blkID: '" << blkID << "'" << endl
 	<< "coordinate: (" << coordinate.x << ", " << coordinate.y

@@ -1,13 +1,18 @@
 #include "Net.h"
 #include "Band.h"
 #include <iomanip>
+#include <memory>
+#include <string>
+#include <vector>
 
 constexpr double DX = 0.01;
 constexpr double DY = 0.01;
 
-bool checkIfIntersect(Band *&source, Band *&target, vector<Band*> &compairer, vector<Band*> &compairee) {
-	for (Band *s : compairer) {
-		for (Band *t : compairee) {
+bool debugInfo = 0;
+
+bool checkIfIntersect(Band *&source, Band *&target, vector<Band*> &vec_source, vector<Band*> &vec_target) {
+	for (Band *s : vec_source) {
+		for (Band *t : vec_target) {
 			if (s->intersected(t)) {
 				// which means path is found
 				source = s;
@@ -24,120 +29,121 @@ void printBands(const vector<Band*>& bands) {
 }
 
 void bandSearchAlgorithm(Net &net, Chip &chip, vector<Band*> &recordPath) {
-	//cout << "Start band search!" << endl;
+	if (debugInfo) cout << "Start band search!" << endl;
 
-	//step 1: initializaiotn
+	//step 1: initializaion
 	Terminal source = net.TX;
-	Terminal target = net.RXs[0]; // 待處理
+	Terminal target = net.RXs[0]; // waited to be fix
 
-	//cout << source.coord.x << ", " << source.coord.y << "][" << target.coord.x << ", " << target.coord.y << endl;
-
-	/*
-	現在還沒寫的
-	1. 現在search出來的東西會是一堆band，
-	   要如何在band path中找到一條optimized net，
-	   同時要注意net間距的問題
-	2. must through還沒穿過
-	3. 還沒run過
-	*/
+	/*============= not write yet =============
+	1. now search output is vector of bands
+	   how to find optimized net from many band path
+	   and also the spacing of nets
+	2. must through not done yet
+	3. when a net feed throughs a block
+	   that block's through_block_net_num's gonna decrease
+	   but not done yet
+	============= not write yet =============*/
 
 	vector<Band*> CSB; // stands for current source bands
 	vector<Band*> OSB; // stands for old source bands
 	vector<Band*> CTB; // stands for current target bands
 	vector<Band*> OTB; // stands for old target bands
 
-	vector<Edge> &edges = chip.totEdge; // make it referenced
+	vector<Edge> &edges = chip.allEdges; // make it referenced
 
-	// 把 TX 跟 RX 改成 Bands
+	// change TX and RX into Bands
 	CSB.push_back(new Band(source, 1, edges));
 	CSB.push_back(new Band(source, 0, edges));
 	CTB.push_back(new Band(target, 1, edges));
 	CTB.push_back(new Band(target, 0, edges));
+	if (debugInfo) cout << "2" << endl;
 
 	Band* sourceBandsBackTrace = nullptr;
 	Band* targetBandsBackTrace = nullptr;
+	if (debugInfo) cout << "3" << endl;
 
-	//cout << "step 1 complete\n";
+	if (debugInfo) cout << "step 1 complete\n";
 
 	int levelOfIteration = 0;
 	while (1) {
-		//cout << "=== level Of Iteration: " << ++levelOfIteration << " ===\n";
-		
-		// step 2: check if intersect 
+		if (debugInfo) cout << "=== level Of Iteration: " << ++levelOfIteration << " ===\n";
+
+		// step 2: check if intersect
 		if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, CSB, CTB)) break;
 		if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, CSB, OTB)) break;
 		if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, OSB, CTB)) break;
-		
-		//cout << "step 2 complete\n";
+
+		if (debugInfo) cout << "step 2 complete\n";
 
 		// step 3: copy CSB to OSB; copy CTB to OTB
-		// current 的點要存回去 old
+		// current bands stores to old
 		OSB.insert(OSB.end(), CSB.begin(), CSB.end());
 		OTB.insert(OTB.end(), CTB.begin(), CTB.end());
 
-		// current 的資料應該不能刪掉，因為還要 extend
-		// 只是在這之後(、被清除之前)調用 current bands 應該只能 const *
-		//cout << "step 3 complete\n";
+		// current data can't clear now, because used in extend
+		// but from now on, current bands should read only
+		if (debugInfo) cout << "step 3 complete\n";
 
-		// step 4. 生成與 current bands 垂直的 extendedProbes，並先把他們暫存在一個 vector 裡面
-		// 要分成 from source 跟 from target
+		// step 4. generate extended bands that perpendicular to current bands
+		// store them in a temporary vector
+		// distinguished from source and from target
 		vector<Band*> ESB; // stands for extended source bands
 		vector<Band*> ETB; // stands for extended target bands
-		// 這些生成出來的 bands 的 level 要 +1
+		// these bands' level are +1
 
-		//cout << "< from source >\n";
-		for (Band *b : CSB) { // 來自 source
-        	//cout << " # band " << *b << endl;
+		if (debugInfo) cout << "< from source >\n";
+		for (Band *b : CSB) { // from source
+        	if (debugInfo) cout << " # band " << *b << endl;
 
 			vector<Edge> coverageRight = b->generateCoveredRanges(edges, 1);
 			vector<Edge> coverageLeft = b->generateCoveredRanges(edges, 0);
 
 			vector<Band*> tempESB = b->mergeCoveredRanges(coverageLeft, coverageRight);
 			for (Band *esb : tempESB) {
-                //cout << "  + adding " << *esb;
+                if (debugInfo) cout << "  + adding " << *esb;
 				if (esb->alreadyExist(OSB) || esb->alreadyExist(CSB) || esb->alreadyExist(ESB)) {
-					//cout << endl;
+					if (debugInfo) cout << endl;
 					delete esb;
 					continue;
 				}
 				ESB.push_back(esb);
-				//cout << endl;
+				if (debugInfo) cout << endl;
 			}
-			//cout << endl;
+			if (debugInfo) cout << endl;
 		}
 
-		//cout << "< from target >\n";
-		for (Band *b : CTB) { // 來自 target
-        	//cout << " # band " << *b << endl;
+		if (debugInfo) cout << "< from target >\n";
+		for (Band *b : CTB) { // from target
+        	if (debugInfo) cout << " # band " << *b << endl;
 
 			vector<Edge> coverageRight = b->generateCoveredRanges(edges, 1);
 			vector<Edge> coverageLeft = b->generateCoveredRanges(edges, 0);
 
 			vector<Band*> tempETB = b->mergeCoveredRanges(coverageLeft, coverageRight);
 			for (Band *etb : tempETB) {
-                //cout << "  + adding " << *etb;
+                if (debugInfo) cout << "  + adding " << *etb;
 				if (etb->alreadyExist(OTB) || etb->alreadyExist(CTB) || etb->alreadyExist(ETB)) {
-					//cout << endl;
+					if (debugInfo) cout << endl;
 					delete etb;
 					continue;
 				}
 				ETB.push_back(etb);
-				//cout << endl;
+				if (debugInfo) cout << endl;
 			}
-			//cout << endl;
+			if (debugInfo) cout << endl;
 		}
 
-		// 因此我們現在獲得了全部的下一個 level 的 bands (在 extendedBands 裡)
-		// 接下來要將CSB、CTB的資料刪除
-		//for (Band *b : CSB) { delete b; }
-		//for (Band *b : CTB) { delete b; }
+		// now we obtain all next level bands inside extendedBands
+		// now clears CSB, CTB
 		CSB.clear();
 		CTB.clear();
 
-		// 然後把ESB、ETB的資料存入CSB、CTB裡面
+		// moves ESB, ETB's data into CSB, CTB
 		CSB = std::move(ESB);
 		CTB = std::move(ETB);
-		/*
+
+		if (debugInfo) {
 		cout << "> CSB:\n";
 		printBands(CSB);
 		cout << "> CTB:\n";
@@ -146,29 +152,30 @@ void bandSearchAlgorithm(Net &net, Chip &chip, vector<Band*> &recordPath) {
 		printBands(OSB);
 		cout << "> OTB:\n";
 		printBands(OTB);
-		*/
-		//cout << "step 4 complete\n";
-		//cout << endl;
-		if (levelOfIteration == 5) return;
+		cout << "step 4 complete\n\n";
+		}
+
+		if (levelOfIteration > 10) {
+			cout << "can't find :(\n";
+			return;
+		}
 	}
 
 	// Step 5: Backtrace
 	cout << "Path found!" << endl;
 
 	// Backtrace from source Band
-	Band* band = sourceBandsBackTrace;
-	while (band) {
-		recordPath.push_back(band);
-		band = band->parent;
+	while (sourceBandsBackTrace) {
+		recordPath.push_back(sourceBandsBackTrace);
+		sourceBandsBackTrace = sourceBandsBackTrace->parent;
 	}
 
 	reverse(recordPath.begin(), recordPath.end()); // Reverse to get path from source to target
 
 	// Backtrace from target Band
-	band = targetBandsBackTrace;
-	while (band) {
-		recordPath.push_back(band);
-		band = band->parent;
+	while (targetBandsBackTrace) {
+		recordPath.push_back(targetBandsBackTrace);
+		targetBandsBackTrace = targetBandsBackTrace->parent;
 	}
 
 	// Clean up dynamically allocated memory
@@ -176,111 +183,84 @@ void bandSearchAlgorithm(Net &net, Chip &chip, vector<Band*> &recordPath) {
 	delete targetBandsBackTrace;
 
 	// Print the path
-	cout << "len(Path): " << recordPath.size() << endl;
+	cout << "length of Path: " << recordPath.size() << endl;
     cout << "Path:" << endl;
-    for (Band const *p : recordPath) {
-		cout << *p << endl;
-	}
+    printBands(recordPath);
+
 	for (Band *b : OSB) { delete b; }
 	for (Band *b : CSB) { delete b; }
 	for (Band *b : OTB) { delete b; }
 	for (Band *b : CTB) { delete b; }
+	return;
 }
 
 int main() {
 
-	Chip chip(0);
+	Chip chip(4);
 	vector<Band*> record;
 
 	//cout << fixed << setprecision(3);
 
-	/*2*/
-
 	Net net;
-	net.ParserAllNets(0, chip);
-
-	for (auto const &e : chip.totEdge) {
-		cout << "(" << e.first.x << ", " << e.first.y << ") (" << e.second.x << ", " << e.second.y << ")\n";
-	}return 0;
+	net.ParserAllNets(4, chip);
 
 	int index = 0;
 	for (Net n : net.allNets) {
 		index++;
-
+		if (index == 10) break;
 		Terminal source = n.TX;
-		Terminal target = n.RXs[0]; // 待處理
-		cout << "(" << source.coord.x << ", " << source.coord.y << ") (" << target.coord.x << ", " << target.coord.y << ")\n";
-
-		bandSearchAlgorithm(n, chip, record);
-		if (index > 10) break;
+		for (Terminal target : n.RXs) {
+			Net sole(source, target);
+			cout << "(" << sole.TX.coord.x << ", " << sole.TX.coord.y << ") (" << sole.RXs[0].coord.x << ", " << sole.RXs[0].coord.y << ")\n";
+			bandSearchAlgorithm(sole, chip, record);
+		}
 	}
 
 	cout << "done" << endl;
-	return 0;
+    return 0; /*---------------------------------------------------------*/
 
-	/*1*/
-	
-	chip.border = Point(33, 15);
-	chip.totEdge.clear();
+	// customed test data
+	Chip tesCh;
+	for (int i = 0; i < 6; i++) { tesCh.allBlocks.push_back(make_unique<Block>("block" + to_string(i))); }
+	tesCh.allBlocks.push_back(make_unique<Block>("testS"));
+	tesCh.allBlocks.push_back(make_unique<Block>("testT"));
 
-	chip.totEdge.push_back(Edge(Point(0, 4), Point(4, 4)));
-	chip.totEdge.push_back(Edge(Point(4, 4), Point(4, 11)));
-	chip.totEdge.push_back(Edge(Point(4, 11), Point(7, 11)));
-	chip.totEdge.push_back(Edge(Point(7, 11), Point(7, 13)));
-	chip.totEdge.push_back(Edge(Point(23, 13), Point(7, 13)));
-	chip.totEdge.push_back(Edge(Point(23, 13), Point(23, 15)));
+	// regular borders
+	tesCh.allBlocks[0]->vertices = { Point(11, 0), Point(11, 9), Point(17, 9), Point(17, 7), Point(14, 7), Point(14, 0) };
+	tesCh.allBlocks[1]->vertices = { Point(9, 10), Point(9, 12), Point(20, 12), Point(20, 10) };
+	tesCh.allBlocks[2]->vertices = { Point(17, 2), Point(17, 4), Point(22, 4), Point(22, 12), Point(25, 12), Point(25, 10), Point(28, 10), Point(28, 8), Point(25, 8), Point(25, 3), Point(22, 3), Point(22, 2) };
+	tesCh.allBlocks[3]->vertices = { Point(0, 4), Point(4, 4), Point (4, 11), Point(7, 11), Point(7, 13), Point(23, 13), Point(23, 15), Point(0, 15) };
+	tesCh.allBlocks[4]->vertices = { Point(24, 13), Point(24, 15), Point(33, 15), Point(33, 3), Point(30, 3), Point(30, 4), Point(27, 4), Point(27, 6), Point(30, 6), Point(30, 13) };
+	tesCh.allBlocks[5]->vertices = { Point(0, 0), Point(0, 15), Point(33, 15), Point(33, 0) };
 
-	chip.totEdge.push_back(Edge(Point(9, 10), Point(9, 12)));
-	chip.totEdge.push_back(Edge(Point(9, 12), Point(20, 12)));
-	chip.totEdge.push_back(Edge(Point(20, 12), Point(20, 10)));
-	chip.totEdge.push_back(Edge(Point(9, 10), Point(20, 10)));
-
-	chip.totEdge.push_back(Edge(Point(11, 0), Point(11, 9)));
-	chip.totEdge.push_back(Edge(Point(11, 9), Point(17, 9)));
-	chip.totEdge.push_back(Edge(Point(17, 7), Point(17, 9)));
-	chip.totEdge.push_back(Edge(Point(14, 7), Point(17, 7)));
-	chip.totEdge.push_back(Edge(Point(14, 7), Point(14, 0)));
-
-	chip.totEdge.push_back(Edge(Point(17, 2), Point(17, 4)));
-	chip.totEdge.push_back(Edge(Point(17, 4), Point(22, 4)));
-	chip.totEdge.push_back(Edge(Point(22, 4), Point(22, 12)));
-	chip.totEdge.push_back(Edge(Point(22, 12), Point(25, 12)));
-	chip.totEdge.push_back(Edge(Point(25, 12), Point(25, 10)));
-	chip.totEdge.push_back(Edge(Point(25, 10), Point(28, 10)));
-	chip.totEdge.push_back(Edge(Point(28, 10), Point(28, 8)));
-	chip.totEdge.push_back(Edge(Point(28, 8), Point(25, 8)));
-	chip.totEdge.push_back(Edge(Point(25, 8), Point(25, 3)));
-	chip.totEdge.push_back(Edge(Point(25, 3), Point(22, 3)));
-	chip.totEdge.push_back(Edge(Point(22, 3), Point(22, 2)));
-	chip.totEdge.push_back(Edge(Point(22, 2), Point(17, 2)));
-
-	chip.totEdge.push_back(Edge(Point(24, 15), Point(24, 13)));
-	chip.totEdge.push_back(Edge(Point(24, 13), Point(30, 13)));
-	chip.totEdge.push_back(Edge(Point(30, 13), Point(30, 6)));
-	chip.totEdge.push_back(Edge(Point(30, 6), Point(27, 6)));
-	chip.totEdge.push_back(Edge(Point(27, 6), Point(27, 4)));
-	chip.totEdge.push_back(Edge(Point(27, 4), Point(30, 4)));
-	chip.totEdge.push_back(Edge(Point(30, 4), Point(30, 3)));
-	chip.totEdge.push_back(Edge(Point(30, 3), Point(33, 3)));
-
-	// Edges: already have block Edges, here adding the chip border
-	chip.totEdge.push_back(Edge(Point(0, 0), Point(0, chip.border.y)));
-	chip.totEdge.push_back(Edge(Point(0, 0), Point(chip.border.x, 0)));
-	chip.totEdge.push_back(Edge(Point(0, chip.border.y), chip.border));
-	chip.totEdge.push_back(Edge(Point(chip.border.x, 0), chip.border));
+	// the block contains terminal
+	tesCh.allBlocks[6]->vertices = { Point(4.9, 3.9), Point(4.9, 6.1), Point(7.1, 6.1), Point(7.1, 3.9) }; // testS
+	tesCh.allBlocks[7]->vertices = { Point(25.5, 2), Point(25.5, 3.3), Point(28.8, 3.3), Point(28.8, 2) }; // testT
+	for (auto &b : tesCh.allBlocks) { b->verticesToEdges(); for (auto &e : b->edges) { tesCh.allEdges.push_back(e); } }
 
 	// make it ordered
-	std::sort(chip.totEdge.begin(), chip.totEdge.end(), 
-	[](const Edge& a, const Edge& b) { return a.fixed() < b.fixed(); });
+	std::sort(tesCh.allEdges.begin(), tesCh.allEdges.end(), [](const auto& a, const auto& b) { return a.fixed() < b.fixed(); });
 
 	Terminal start("testS", Point(6, 5));
   	Terminal end("testT", Point(26, 3));
 	Net n(start, end);
-	
-	bandSearchAlgorithm(n, chip, record);
+
+	bandSearchAlgorithm(n, tesCh, record);
 
 	cout << "done" << endl;
-	return 0;
+    return 0; /*---------------------------------------------------------*/
+
+    // this tests if edges are linked to block, and is well!
+	for (auto e : chip.allEdges) {
+		if (e.block) {
+			cout << e.block->name << ": ";
+			if (e.block->name.length() == 7) { cout << " "; }
+		}
+		else { cout << "_BORDER_: "; }
+		cout << e.isVertical();
+		cout << " (" << e.fixed() << ")\t(" << e.ranged().min << ", " << e.ranged().max << ")\n";
+	}
+    return 0; /*---------------------------------------------------------*/
 }
 
 /*

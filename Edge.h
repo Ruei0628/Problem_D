@@ -14,11 +14,10 @@ class Edge {
 public:
 	Edge(){}
 	Edge(Pair r, double f) : first(Point(r.min, f)), second(Point(r.max, f)) { /* use in CoveredRange */ }
-	Edge(Point First, Point Second) : first(First), second(Second) {}
-	Edge(Point First, Point Second, Block *Block) : first(First), second(Second), block(Block) {}
+	Edge(Point First, Point Second) : first(First), second(Second), block(nullptr) {}
 
 	Point first, second;
-	Block* block;
+	Block* block = nullptr;
 
 	bool isVertical() const { return first.x == second.x; }
 	double fixed() const { return (isVertical() * first.x) + (!isVertical() * first.y); }

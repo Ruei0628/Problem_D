@@ -15,6 +15,7 @@ struct BlockEdgeAndNum {
 class Block : public Zone {
 public:
 	Block();
+	Block(string);
 	Block(Block const &);
 
 	Point coordinate;
@@ -29,7 +30,7 @@ public:
 	vector<Edge> edges;
 
 	void verticesToEdges();
-	void showBlockInfo();
+	void showBlockInfo() const;
 	// 還沒寫net穿過block會減少through_block_net_num
 };
 

@@ -11,7 +11,7 @@ public:
 	Region();
 	Region(Region const &);
 	
-	void showRegionInfo();
+	void showRegionInfo() const;
 };
 
 #endif // REGION_H_INCLUDED
