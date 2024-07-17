@@ -19,7 +19,7 @@ public:
 
 struct MUST_THROUGH {
 	string blockName;
-	vector<array<double, 4>> edges;
+	vector<Edge> edges;
 };
 
 class Net {

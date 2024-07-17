@@ -3,7 +3,8 @@
 
 bool debugInfoBand = 0;
 
-Band::Band(Pair X, Pair Y, int Level, Band *Parent) : x(X), y(Y), level(Level), parent(Parent) {
+Band::Band(Pair X, Pair Y, int Level, shared_ptr<Band> Parent) : x(X), y(Y), level(Level), parent(Parent) {
+	terminalName = Parent->terminalName;
 	direction_isX = !Parent->direction_isX;
 }
 
@@ -46,7 +47,7 @@ Pair Band::directionPair(vector<Edge> const &OrderedEdges, Point coord) const {
 	return Pair(min, max);
 }
 
-bool Band::intersected(Band const *other) const {
+bool Band::intersected(const shared_ptr<Band> &other) const {
 	bool x_intersect = !(x.min > other->x.max || x.max < other->x.min);
 	bool y_intersect = !(y.min > other->y.max || y.max < other->y.min);
 	if (x_intersect && y_intersect) {
@@ -57,7 +58,7 @@ bool Band::intersected(Band const *other) const {
 	return 0;
 }
 
-Band* Band::extendBand(Pair x, Pair y) { return new Band(x, y, level + 1, this); }
+shared_ptr<Band> Band::extendBand(Pair x, Pair y) { return make_shared<Band>(x, y, level + 1, shared_from_this()); }
 
 vector<Edge> Band::generateCoveredRanges(vector<Edge> &edges, bool right) {
     vector<Pair> uncovered;
@@ -148,8 +149,8 @@ void Band::addSource(const Edge &e, vector<Pair> &uncovered, vector<Edge> &cover
     for (const auto& range : newCovered) { covered.push_back(range); }
 }
 
-vector<Band*> Band::mergeCoveredRanges(const vector<Edge>& left, const vector<Edge>& right) {
-    vector<Band*> result;
+vector<unique_ptr<Band>> Band::mergeCoveredRanges(const vector<Edge>& left, const vector<Edge>& right) {
+    vector<unique_ptr<Band>> result;
     size_t i = 0, j = 0;
     double currentMin = min(left[0].ranged().min, right[0].ranged().min);
     double leftParameter = -1, rightParameter = -1;
@@ -166,11 +167,11 @@ vector<Band*> Band::mergeCoveredRanges(const vector<Edge>& left, const vector<Ed
         if (leftParameter != -1 && rightParameter != -1) {
 			if (toExtend_isX()) { 
 				// the extendedBand's direction is X
-				result.push_back(extendBand(Pair(leftParameter, rightParameter), Pair(currentMin, nextSplitPoint)));
-			} else { 
+				result.push_back(make_unique<Band>(Pair(leftParameter, rightParameter), Pair(currentMin, nextSplitPoint), level + 1, shared_from_this()));
+    			} else { 
 				// the extendedBand's direction is Y
-				result.push_back(extendBand(Pair(currentMin, nextSplitPoint), Pair(leftParameter, rightParameter)));
-			}
+				result.push_back(make_unique<Band>(Pair(currentMin, nextSplitPoint), Pair(leftParameter, rightParameter), level + 1, shared_from_this()));
+    		}
         }
 
         currentMin = nextSplitPoint;
@@ -188,12 +189,12 @@ vector<Band*> Band::mergeCoveredRanges(const vector<Edge>& left, const vector<Ed
     return result;
 }
 
-bool Band::operator <=(Band* const &other) const {
+bool Band::operator <=(const shared_ptr<Band> &other) const {
 	return this->x <= other->x && this->y <= other->y;
 }
 
-bool Band::alreadyExist(vector<Band*> bands) {
-	for (Band* const &b : bands) {
+bool Band::alreadyExist(const vector<shared_ptr<Band>> &bands) {
+	for (const auto &b : bands) {
 		if (*this <= b) {
         	if (debugInfoBand) cout << " X.";
 			return 1;
@@ -202,6 +203,7 @@ bool Band::alreadyExist(vector<Band*> bands) {
 	return 0;
 }
 ostream& operator <<(ostream& os, const Band& band) {
-    os << "x[" << band.x.min << ", " << band.x.max << "]\ty[" << band.y.min << ", " << band.y.max << "] " << band.level;
+    os << band.level << " " << band.terminalName;
+	os << "\tx[" << band.x.min << ", " << band.x.max << "]\ty[" << band.y.min << ", " << band.y.max << "] ";
     return os;
 }

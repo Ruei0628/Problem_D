@@ -2,222 +2,199 @@
 #include "Band.h"
 #include <iomanip>
 #include <memory>
-#include <string>
-#include <vector>
 
 constexpr double DX = 0.01;
 constexpr double DY = 0.01;
 
 bool debugInfo = 0;
 
-bool checkIfIntersect(Band *&source, Band *&target, vector<Band*> &vec_source, vector<Band*> &vec_target) {
-	for (Band *s : vec_source) {
-		for (Band *t : vec_target) {
-			if (s->intersected(t)) {
-				// which means path is found
-				source = s;
-				target = t;
-				return 1;
-			}
-		}
-	}
-	return 0;
+bool checkIfIntersect(shared_ptr<Band> &source, shared_ptr<Band> &target, 
+                      vector<shared_ptr<Band>> &vec_source, 
+                      vector<shared_ptr<Band>> &vec_target) {
+    for (const auto &s : vec_source) {
+        for (const auto &t : vec_target) {
+            if (s->intersected(t)) {
+                // which means path is found
+                source = s;
+                target = t;
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
-void printBands(const vector<Band*>& bands) {
-    for (const auto& band : bands) { cout << " > " << *band << endl; }
+void printBands(const vector<shared_ptr<Band>>& bands) {
+    for (const auto& band : bands) { 
+        cout << " > " << *band << endl; 
+    }
 }
 
-void bandSearchAlgorithm(Net &net, Chip &chip, vector<Band*> &recordPath) {
-	if (debugInfo) cout << "Start band search!" << endl;
+void bandSearchAlgorithm(Net &net, Chip &chip, vector<shared_ptr<Band>> &recordPath) {
+    if (debugInfo) cout << "Start band search!" << endl;
 
-	//step 1: initializaion
-	Terminal source = net.TX;
-	Terminal target = net.RXs[0]; // waited to be fix
+    //step 1: initializaion
+    Terminal source = net.TX;
+    Terminal target = net.RXs[0]; // waited to be fix
 
-	/*============= not write yet =============
-	1. now search output is vector of bands
-	   how to find optimized net from many band path
-	   and also the spacing of nets
-	2. must through not done yet
-	3. when a net feed throughs a block
-	   that block's through_block_net_num's gonna decrease
-	   but not done yet
-	============= not write yet =============*/
+    vector<shared_ptr<Band>> CSB; // stands for current source bands
+    vector<shared_ptr<Band>> OSB; // stands for old source bands
+    vector<shared_ptr<Band>> CTB; // stands for current target bands
+    vector<shared_ptr<Band>> OTB; // stands for old target bands
 
-	vector<Band*> CSB; // stands for current source bands
-	vector<Band*> OSB; // stands for old source bands
-	vector<Band*> CTB; // stands for current target bands
-	vector<Band*> OTB; // stands for old target bands
+    vector<Edge> &edges = chip.allEdges; // make it referenced
 
-	vector<Edge> &edges = chip.allEdges; // make it referenced
+    // change TX and RX into Bands
+    CSB.push_back(make_shared<Band>(source, 1, edges));
+    CSB.push_back(make_shared<Band>(source, 0, edges));
+    CTB.push_back(make_shared<Band>(target, 1, edges));
+    CTB.push_back(make_shared<Band>(target, 0, edges));
 
-	// change TX and RX into Bands
-	CSB.push_back(new Band(source, 1, edges));
-	CSB.push_back(new Band(source, 0, edges));
-	CTB.push_back(new Band(target, 1, edges));
-	CTB.push_back(new Band(target, 0, edges));
-	if (debugInfo) cout << "2" << endl;
+    shared_ptr<Band> sourceBandsBackTrace = nullptr;
+    shared_ptr<Band> targetBandsBackTrace = nullptr;
 
-	Band* sourceBandsBackTrace = nullptr;
-	Band* targetBandsBackTrace = nullptr;
-	if (debugInfo) cout << "3" << endl;
+    if (debugInfo) cout << "step 1 complete\n";
 
-	if (debugInfo) cout << "step 1 complete\n";
+    int levelOfIteration = 0;
+    while (true) {
+        if (debugInfo) cout << "=== level Of Iteration: " << ++levelOfIteration << " ===\n";
 
-	int levelOfIteration = 0;
-	while (1) {
-		if (debugInfo) cout << "=== level Of Iteration: " << ++levelOfIteration << " ===\n";
+        if (debugInfo) {
+            cout << "> CSB:\n";
+            printBands(CSB);
+            cout << "> CTB:\n";
+            printBands(CTB);
+            cout << "> OSB:\n";
+            printBands(OSB);
+            cout << "> OTB:\n";
+            printBands(OTB);
+        }
+		
+        // step 2: check if intersect
+        if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, CSB, CTB)) break;
+        if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, CSB, OTB)) break;
+        if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, OSB, CTB)) break;
 
-		// step 2: check if intersect
-		if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, CSB, CTB)) break;
-		if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, CSB, OTB)) break;
-		if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, OSB, CTB)) break;
+        if (debugInfo) cout << "step 2 complete\n";
 
-		if (debugInfo) cout << "step 2 complete\n";
+        // step 3: copy CSB to OSB; copy CTB to OTB
+        // current bands stores to old
+        OSB.insert(OSB.end(), CSB.begin(), CSB.end());
+        OTB.insert(OTB.end(), CTB.begin(), CTB.end());
 
-		// step 3: copy CSB to OSB; copy CTB to OTB
-		// current bands stores to old
-		OSB.insert(OSB.end(), CSB.begin(), CSB.end());
-		OTB.insert(OTB.end(), CTB.begin(), CTB.end());
+        if (debugInfo) cout << "step 3 complete\n";
 
-		// current data can't clear now, because used in extend
-		// but from now on, current bands should read only
-		if (debugInfo) cout << "step 3 complete\n";
+        // step 4. generate extended bands that perpendicular to current bands
+        vector<shared_ptr<Band>> ESB; // stands for extended source bands
+        vector<shared_ptr<Band>> ETB; // stands for extended target bands
 
-		// step 4. generate extended bands that perpendicular to current bands
-		// store them in a temporary vector
-		// distinguished from source and from target
-		vector<Band*> ESB; // stands for extended source bands
-		vector<Band*> ETB; // stands for extended target bands
-		// these bands' level are +1
+        if (debugInfo) cout << "< from source >\n";
+        for (const auto &b : CSB) { // from source
+            if (debugInfo) cout << " # band " << *b << endl;
 
-		if (debugInfo) cout << "< from source >\n";
-		for (Band *b : CSB) { // from source
-        	if (debugInfo) cout << " # band " << *b << endl;
+            vector<Edge> coverageRight = b->generateCoveredRanges(edges, 1);
+            vector<Edge> coverageLeft = b->generateCoveredRanges(edges, 0);
 
-			vector<Edge> coverageRight = b->generateCoveredRanges(edges, 1);
-			vector<Edge> coverageLeft = b->generateCoveredRanges(edges, 0);
-
-			vector<Band*> tempESB = b->mergeCoveredRanges(coverageLeft, coverageRight);
-			for (Band *esb : tempESB) {
+            vector<unique_ptr<Band>> tempESB = b->mergeCoveredRanges(coverageLeft, coverageRight);
+            for (auto &esb : tempESB) {
                 if (debugInfo) cout << "  + adding " << *esb;
-				if (esb->alreadyExist(OSB) || esb->alreadyExist(CSB) || esb->alreadyExist(ESB)) {
-					if (debugInfo) cout << endl;
-					delete esb;
-					continue;
-				}
-				ESB.push_back(esb);
-				if (debugInfo) cout << endl;
-			}
-			if (debugInfo) cout << endl;
-		}
+                if (esb->alreadyExist(OSB) || esb->alreadyExist(CSB) || esb->alreadyExist(ESB)) {
+                    if (debugInfo) cout << endl;
+                    continue;
+                }
+                ESB.push_back(std::move(esb));
+                if (debugInfo) cout << endl;
+            }
+            if (debugInfo) cout << endl;
+        }
 
-		if (debugInfo) cout << "< from target >\n";
-		for (Band *b : CTB) { // from target
-        	if (debugInfo) cout << " # band " << *b << endl;
+        if (debugInfo) cout << "< from target >\n";
+        for (const auto &b : CTB) { // from target
+            if (debugInfo) cout << " # band " << *b << endl;
 
-			vector<Edge> coverageRight = b->generateCoveredRanges(edges, 1);
-			vector<Edge> coverageLeft = b->generateCoveredRanges(edges, 0);
+            vector<Edge> coverageRight = b->generateCoveredRanges(edges, 1);
+            vector<Edge> coverageLeft = b->generateCoveredRanges(edges, 0);
 
-			vector<Band*> tempETB = b->mergeCoveredRanges(coverageLeft, coverageRight);
-			for (Band *etb : tempETB) {
+            vector<unique_ptr<Band>> tempETB = b->mergeCoveredRanges(coverageLeft, coverageRight);
+            for (auto &etb : tempETB) {
                 if (debugInfo) cout << "  + adding " << *etb;
-				if (etb->alreadyExist(OTB) || etb->alreadyExist(CTB) || etb->alreadyExist(ETB)) {
-					if (debugInfo) cout << endl;
-					delete etb;
-					continue;
-				}
-				ETB.push_back(etb);
-				if (debugInfo) cout << endl;
-			}
-			if (debugInfo) cout << endl;
-		}
+                if (etb->alreadyExist(OTB) || etb->alreadyExist(CTB) || etb->alreadyExist(ETB)) {
+                    if (debugInfo) cout << endl;
+                    continue;
+                }
+                ETB.push_back(std::move(etb));
+                if (debugInfo) cout << endl;
+            }
+            if (debugInfo) cout << endl;
+        }
 
-		// now we obtain all next level bands inside extendedBands
-		// now clears CSB, CTB
-		CSB.clear();
-		CTB.clear();
+        // now we obtain all next level bands inside extendedBands
+        // now clears CSB, CTB
+        CSB.clear();
+        CTB.clear();
 
-		// moves ESB, ETB's data into CSB, CTB
-		CSB = std::move(ESB);
-		CTB = std::move(ETB);
+        // moves ESB, ETB's data into CSB, CTB
+        CSB = std::move(ESB);
+        CTB = std::move(ETB);
 
-		if (debugInfo) {
-		cout << "> CSB:\n";
-		printBands(CSB);
-		cout << "> CTB:\n";
-		printBands(CTB);
-		cout << "> OSB:\n";
-		printBands(OSB);
-		cout << "> OTB:\n";
-		printBands(OTB);
-		cout << "step 4 complete\n\n";
-		}
+        if (levelOfIteration > 10) {
+            cout << "can't find :(\n";
+            return;
+        }
+		if (debugInfo) cout << "step 4 complete\n\n";
+    }
 
-		if (levelOfIteration > 10) {
-			cout << "can't find :(\n";
-			return;
-		}
-	}
+    // Step 5: Backtrace
+    cout << "Path found! ";
 
-	// Step 5: Backtrace
-	cout << "Path found!" << endl;
+    // Backtrace from source Band
+    while (sourceBandsBackTrace) {
+        recordPath.push_back(sourceBandsBackTrace);
+        sourceBandsBackTrace = sourceBandsBackTrace->parent;
+    }
 
-	// Backtrace from source Band
-	while (sourceBandsBackTrace) {
-		recordPath.push_back(sourceBandsBackTrace);
-		sourceBandsBackTrace = sourceBandsBackTrace->parent;
-	}
+    reverse(recordPath.begin(), recordPath.end()); // Reverse to get path from source to target
 
-	reverse(recordPath.begin(), recordPath.end()); // Reverse to get path from source to target
+    // Backtrace from target Band
+    while (targetBandsBackTrace) {
+        recordPath.push_back(targetBandsBackTrace);
+        targetBandsBackTrace = targetBandsBackTrace->parent;
+    }
 
-	// Backtrace from target Band
-	while (targetBandsBackTrace) {
-		recordPath.push_back(targetBandsBackTrace);
-		targetBandsBackTrace = targetBandsBackTrace->parent;
-	}
-
-	// Clean up dynamically allocated memory
-	delete sourceBandsBackTrace;
-	delete targetBandsBackTrace;
-
-	// Print the path
-	cout << "length of Path: " << recordPath.size() << endl;
-    cout << "Path:" << endl;
+    // Print the path
+    cout << "length of Path: " << recordPath.size() << endl;
     printBands(recordPath);
 
-	for (Band *b : OSB) { delete b; }
-	for (Band *b : CSB) { delete b; }
-	for (Band *b : OTB) { delete b; }
-	for (Band *b : CTB) { delete b; }
-	return;
+    // No need to manually delete smart pointers
+    return;
 }
 
 int main() {
+    Chip chip(4);
+	
+	cout << fixed << setprecision(3);
 
-	Chip chip(4);
-	vector<Band*> record;
+    Net net;
+    net.ParserAllNets(4, chip);
 
-	//cout << fixed << setprecision(3);
+    int index = -1;
+    for (const auto &n : net.allNets) {
+        index++;
+        if (index < 810) continue;
+		if (index > 850) break;
+        Terminal source = n.TX;
+        for (const auto &target : n.RXs) {
+            Net sole(source, target);
+            cout << "\nID: " << n.ID << " (" << sole.TX.coord.x << ", " << sole.TX.coord.y << ") (" 
+                 << sole.RXs[0].coord.x << ", " << sole.RXs[0].coord.y << ")\n";
 
-	Net net;
-	net.ParserAllNets(4, chip);
+    		vector<shared_ptr<Band>> record;
+            bandSearchAlgorithm(sole, chip, record);
+        }
+    }
 
-	int index = 0;
-	for (Net n : net.allNets) {
-		index++;
-		if (index == 10) break;
-		Terminal source = n.TX;
-		for (Terminal target : n.RXs) {
-			Net sole(source, target);
-			cout << "(" << sole.TX.coord.x << ", " << sole.TX.coord.y << ") (" << sole.RXs[0].coord.x << ", " << sole.RXs[0].coord.y << ")\n";
-			bandSearchAlgorithm(sole, chip, record);
-		}
-	}
-
-	cout << "done" << endl;
-    return 0; /*---------------------------------------------------------*/
+    cout << "done" << endl;
+    return 0; /*---------------------------------------------------------
 
 	// customed test data
 	Chip tesCh;
@@ -248,7 +225,7 @@ int main() {
 	bandSearchAlgorithm(n, tesCh, record);
 
 	cout << "done" << endl;
-    return 0; /*---------------------------------------------------------*/
+    return 0; *---------------------------------------------------------*
 
     // this tests if edges are linked to block, and is well!
 	for (auto e : chip.allEdges) {
@@ -260,7 +237,7 @@ int main() {
 		cout << e.isVertical();
 		cout << " (" << e.fixed() << ")\t(" << e.ranged().min << ", " << e.ranged().max << ")\n";
 	}
-    return 0; /*---------------------------------------------------------*/
+    return 0; *---------------------------------------------------------*/
 }
 
 /*

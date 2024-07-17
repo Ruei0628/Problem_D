@@ -47,11 +47,9 @@ void Net::ParserAllNets (int const &testCase, Chip const &chip) {
             MUST_THROUGH tempHmftmt;
             tempHmftmt.blockName = hmftmt.name.GetString();
 			for (auto const &coord : hmftmt.value.GetArray()) {
-				array<double, 4> tempEdges;
-				for (int i = 0; i < 4; i++) {
-					tempEdges[i] = coord[i].GetDouble();
-				}
-				tempHmftmt.edges.push_back(tempEdges);
+				Point first(coord[0].GetDouble(), coord[1].GetDouble());
+				Point second(coord[2].GetDouble(), coord[3].GetDouble());
+				tempHmftmt.edges.push_back(Edge(first, second));
 			}
             tempNet.HMFT_MUST_THROUGHs.push_back(tempHmftmt);
         }
@@ -61,11 +59,9 @@ void Net::ParserAllNets (int const &testCase, Chip const &chip) {
             MUST_THROUGH tempMt;
             tempMt.blockName = mt.name.GetString();
 			for (auto const &coord : mt.value.GetArray()) {
-				array<double, 4> tempEdges;
-				for (int i = 0; i < 4; i++) {
-					tempEdges[i] = coord[i].GetDouble();
-				}
-				tempMt.edges.push_back(tempEdges);
+				Point first(coord[0].GetDouble(), coord[1].GetDouble());
+				Point second(coord[2].GetDouble(), coord[3].GetDouble());
+				tempMt.edges.push_back(Edge(first, second));
 			}
             tempNet.MUST_THROUGHs.push_back(tempMt);
         }
@@ -128,11 +124,7 @@ void Net::showNetInfo() const {
 		for (const MUST_THROUGH &t : MUST_THROUGHs) {
 			cout << " - " << t.blockName;
 			for (auto const &c : t.edges) {
-				cout << " [ ";
-				for (double const &n : c) {
-					cout << n << " ";
-				}
-				cout << "]";
+				cout << " [" << c.first.x << ", " << c.second.x << "] [" << c.first.y << ", " << c.second.y << "]";
 			}
 			cout << endl;
 		}
@@ -142,11 +134,7 @@ void Net::showNetInfo() const {
 		for (const MUST_THROUGH &t : HMFT_MUST_THROUGHs){
 			cout << " - " << t.blockName;
 			for (auto const &c : t.edges) {
-				cout << " [ ";
-				for (double const &n : c) {
-					cout << n << " ";
-				}
-				cout << "]";
+				cout << " [" << c.first.x << ", " << c.second.x << "] [" << c.first.y << ", " << c.second.y << "]";
 			}
 			cout << endl;
 		}
