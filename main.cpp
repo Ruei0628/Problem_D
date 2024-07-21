@@ -170,31 +170,22 @@ void bandSearchAlgorithm(Net &net, Chip &chip, vector<shared_ptr<Band>> &recordP
 }
 
 int main() {
-    Chip chip(4);
-	
 	cout << fixed << setprecision(3);
+	 
+	for (int testCase = 0; testCase < 7; testCase++) {
+		cout << "===================[ " << testCase << " ]===================\n";
+		Chip chip(testCase);
+	
+		for (auto const &b : chip.allBlocks) {
+			if (b->block_port_region.size() || b->through_block_edge_net_num.size()) {
+				if (b->facingFlip.compare(" N")) b->showBlockInfo();
+			}
+    	}
+	}
 
-    Net net;
-    net.ParserAllNets(4, chip);
+	return 0;
 
-    int index = -1;
-    for (const auto &n : net.allNets) {
-        index++;
-        if (index < 810) continue;
-		if (index > 850) break;
-        Terminal source = n.TX;
-        for (const auto &target : n.RXs) {
-            Net sole(source, target);
-            cout << "\nID: " << n.ID << " (" << sole.TX.coord.x << ", " << sole.TX.coord.y << ") (" 
-                 << sole.RXs[0].coord.x << ", " << sole.RXs[0].coord.y << ")\n";
-
-    		vector<shared_ptr<Band>> record;
-            bandSearchAlgorithm(sole, chip, record);
-        }
-    }
-
-    cout << "done" << endl;
-    return 0; /*---------------------------------------------------------
+	/*---------------------
 
 	// customed test data
 	Chip tesCh;
@@ -225,7 +216,73 @@ int main() {
 	bandSearchAlgorithm(n, tesCh, record);
 
 	cout << "done" << endl;
-    return 0; *---------------------------------------------------------*
+    return 0;
+	
+	-----------------------
+	
+	Chip chip(4);
+	
+	cout << fixed << setprecision(3);
+
+    Net net;
+    net.ParserAllNets(4, chip);
+
+    int index = -1;
+    for (const auto &n : net.allNets) {
+        index++;
+        if (index < 810) continue;
+		if (index > 850) break;
+		
+        Terminal source = n.TX;
+        for (const auto &target : n.RXs) {
+            Net sole(source, target);
+            cout << "\nID: " << n.ID << " (" << sole.TX.coord.x << ", " << sole.TX.coord.y << ") (" 
+                 << sole.RXs[0].coord.x << ", " << sole.RXs[0].coord.y << ")\n";
+
+    		vector<shared_ptr<Band>> record;
+            bandSearchAlgorithm(sole, chip, record);
+        }
+    }
+
+    cout << "done" << endl;
+    return 0; 
+
+	-----------------------
+
+    Net net;
+    net.ParserAllNets(testCase, chip);
+
+    int index = -1;
+    for (const auto &n : net.allNets) {
+		bool MUST_THROUGH_NO_NEED = 1;
+		bool HMFT_MUST_THROUGH_NO_NEED = 1;
+
+		if (!n.MUST_THROUGHs.size() && !n.HMFT_MUST_THROUGHs.size()) continue;
+
+        for (auto const &mt : n.MUST_THROUGHs) {
+			if (chip.getBlock(mt.blockName).facingFlip.compare(" N")) MUST_THROUGH_NO_NEED = 0; 
+		}
+		for (auto const &mt : n.HMFT_MUST_THROUGHs) { 
+			if (chip.getBlock(mt.blockName).facingFlip.compare(" N")) HMFT_MUST_THROUGH_NO_NEED = 0; 
+		}
+
+		if (MUST_THROUGH_NO_NEED && HMFT_MUST_THROUGH_NO_NEED) continue;
+
+		n.showNetInfo();
+        for (auto const &mt : n.HMFT_MUST_THROUGHs) {
+			if (chip.getBlock(mt.blockName).facingFlip.compare(" N"))
+				chip.getBlock(mt.blockName).showBlockInfo();
+		}
+        for (auto const &mt : n.MUST_THROUGHs) {
+			if (chip.getBlock(mt.blockName).facingFlip.compare(" N"))
+				chip.getBlock(mt.blockName).showBlockInfo();
+		}
+    }
+
+    cout << "done" << endl;
+    return 0; 
+	
+	-----------------------
 
     // this tests if edges are linked to block, and is well!
 	for (auto e : chip.allEdges) {
@@ -237,7 +294,9 @@ int main() {
 		cout << e.isVertical();
 		cout << " (" << e.fixed() << ")\t(" << e.ranged().min << ", " << e.ranged().max << ")\n";
 	}
-    return 0; *---------------------------------------------------------*/
+    return 0; 
+	
+	---------------------*/
 }
 
 /*

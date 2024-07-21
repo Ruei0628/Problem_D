@@ -30,6 +30,85 @@ void Block::verticesToEdges() {
 		newEdge.block = this;
 		edges.push_back(newEdge);
 	}
+
+	return;
+}
+
+void faceAndFlip(vector<Point> &anyVertices, char const &face, char const &flip) {
+	vector<Point> tempVertices;
+	tempVertices = std::move(anyVertices);
+	
+	// facing
+	for (Point &vertex : tempVertices) {
+		switch (face) {
+		case 'N': { anyVertices.push_back(vertex); break; }
+		case 'W': { anyVertices.push_back(Point(-vertex.y, vertex.x)); break; }
+		case 'S': { anyVertices.push_back(Point(-vertex.x, -vertex.y)); break; }
+		case 'E': { anyVertices.push_back(Point(vertex.y, -vertex.x)); break; }
+		}
+	}
+
+	// flip
+	if (flip == 'F') { for (Point &vertex : anyVertices) { vertex.x = -vertex.x; } }
+
+	return;
+}
+
+void shift(vector<Point> &anyVertices, Point const &min) {
+	for (Point &vertex : anyVertices) {
+		vertex.x += min.x;
+		vertex.y += min.y;
+	}
+
+	return;
+}
+
+vector<Point> edge2Point(Edge const &e) {
+	return vector<Point> { e.first, e.second };
+}
+
+void Block::transposeAllVertices() {
+	// three things need to transpose:
+	// 1. vertices
+	// 2. Edges in through_block_edge_net_num
+	// 3. Edges in block_port_region
+
+	char flip = facingFlip[0];
+	char face = facingFlip[1];
+
+	faceAndFlip(vertices, face, flip);
+
+	// find the new min, later all kinds of vertices if shifted base on this point
+	Point min(1e+10, 1e+10);
+
+	for (Point const &vertex : vertices) {
+		if (vertex.x < min.x) min.x = vertex.x;
+		if (vertex.y < min.y) min.y = vertex.y;
+	}
+	min.x = - min.x;
+	min.y = - min.y;
+
+	// first done the vertices of the block
+	shift(vertices, min);
+	shift(vertices, coordinate);
+
+	// then all the other
+	// note that after experiment, they only need shift base on coordinate
+	// NO NEED to faceFlip!!!
+	for (BlockEdgeAndNum &TBENN : through_block_edge_net_num) {
+		vector<Point> pointsOfEdge = edge2Point(TBENN.edge);
+		shift(pointsOfEdge, coordinate);
+		TBENN.edge.first = pointsOfEdge[0];
+		TBENN.edge.second = pointsOfEdge[1];
+	}
+	for (Edge &BPR : block_port_region) {
+		vector<Point> pointsOfEdge = edge2Point(BPR);
+		shift(pointsOfEdge, coordinate);
+		BPR.first = pointsOfEdge[0];
+		BPR.second = pointsOfEdge[1];
+	}
+
+	return;
 }
 
 void Block::showBlockInfo() const {

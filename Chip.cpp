@@ -4,57 +4,6 @@
 
 using namespace std;
 
-vector<Point> edgeToPoint(Edge const &e) {
-	return vector<Point>{e.first, e.second};
-}
-
-void shiftCoordinate(vector<Point> &vertices, Point coordinate) {
-	for (Point &vertex : vertices) {
-		vertex.x += coordinate.x;
-		vertex.y += coordinate.y;
-	}
-}
-
-void facingAndFlip(vector<Point> &vertices, string facingFlip) {
-	char flip = facingFlip[0];
-	char facing = facingFlip[1];
-
-	vector<Point> tempVertices;
-	tempVertices = vertices;
-	vertices.clear();
-
-	Point min(1e+10, 1e+10);
-	for (Point &vertex : tempVertices) {
-		if (vertex.x < min.x) min.x = vertex.x;
-		if (vertex.y < min.y) min.y = vertex.y;
-	}
-
-	// facing
-	for (Point &vertex : tempVertices) {
-		switch (facing) {
-		case 'N': { vertices.push_back(Point(vertex.x, vertex.y)); break; }
-		case 'W': { vertices.push_back(Point(-vertex.y, vertex.x)); break; }
-		case 'S': { vertices.push_back(Point(-vertex.x, -vertex.y)); break; }
-		case 'E': { vertices.push_back(Point(vertex.y, -vertex.x)); break; }
-		}
-	}
-
-	// flip
-	if (flip == 'F') {
-		for (Point &vertex : vertices) { vertex.x = -vertex.x; }
-	}
-
-	// shift to original min
-	Point newMin(1e+10, 1e+10);
-	for (Point &vertex : vertices) {
-		if (vertex.x < newMin.x) newMin.x = vertex.x;
-		if (vertex.y < newMin.y) newMin.y = vertex.y;
-	}
-	min.x -= newMin.x;
-	min.y -= newMin.y;
-	shiftCoordinate(vertices, min);
-}
-
 Chip::Chip(int const &testCase) {
 	// Open chip_top.def to get
 	// blockName, blkID, coordinate, facingFlip
@@ -179,37 +128,9 @@ Chip::Chip(int const &testCase) {
 
 			// getFacingFlip
 			tempBlock->facingFlip = line.substr(line.length() - 4, 2);
-			// do facingAndFlip
-			facingAndFlip(tempBlock->vertices, tempBlock->facingFlip);
 
-			for (BlockEdgeAndNum &TBENN : tempBlock->through_block_edge_net_num) {
-				vector<Point> convert = edgeToPoint(TBENN.edge);
-				facingAndFlip(convert, tempBlock->facingFlip);
-				TBENN.edge.first = convert[0];
-				TBENN.edge.second = convert[1];
-			}
-			for (Edge &BPR : tempBlock->block_port_region) {
-				vector<Point> convert = edgeToPoint(BPR);
-				facingAndFlip(convert, tempBlock->facingFlip);
-				BPR.first = convert[0];
-				BPR.second = convert[1];
-			}
-
-			// do shiftCoordinate
-			shiftCoordinate(tempBlock->vertices, tempBlock->coordinate);
-
-			for (BlockEdgeAndNum &TBENN : tempBlock->through_block_edge_net_num) {
-				vector<Point> convert = edgeToPoint(TBENN.edge);
-				shiftCoordinate(convert, tempBlock->coordinate);
-				TBENN.edge.first = convert[0];
-				TBENN.edge.second = convert[1];
-			}
-			for (Edge &BPR : tempBlock->block_port_region) {
-				vector<Point> convert = edgeToPoint(BPR);
-				shiftCoordinate(convert, tempBlock->coordinate);
-				BPR.first = convert[0];
-				BPR.second = convert[1];
-			}
+			// do faceAndFlip and shift to ALL members have vertices
+			tempBlock->transposeAllVertices();
 
 			// store the fliped and shifted vertices into edges
 			tempBlock->verticesToEdges();

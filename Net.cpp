@@ -46,9 +46,10 @@ void Net::ParserAllNets (int const &testCase, Chip const &chip) {
         for (const auto &hmftmt : net["HMFT_MUST_THROUGH"].GetObject()) {
             MUST_THROUGH tempHmftmt;
             tempHmftmt.blockName = hmftmt.name.GetString();
+			Point bc = chip.getBlock(tempHmftmt.blockName).coordinate;
 			for (auto const &coord : hmftmt.value.GetArray()) {
-				Point first(coord[0].GetDouble(), coord[1].GetDouble());
-				Point second(coord[2].GetDouble(), coord[3].GetDouble());
+				Point first(coord[0].GetDouble() + bc.x, coord[1].GetDouble() + bc.y);
+				Point second(coord[2].GetDouble() + bc.x, coord[3].GetDouble() + bc.y);
 				tempHmftmt.edges.push_back(Edge(first, second));
 			}
             tempNet.HMFT_MUST_THROUGHs.push_back(tempHmftmt);
@@ -58,9 +59,10 @@ void Net::ParserAllNets (int const &testCase, Chip const &chip) {
         for (const auto &mt : net["MUST_THROUGH"].GetObject()) {
             MUST_THROUGH tempMt;
             tempMt.blockName = mt.name.GetString();
+			Point bc = chip.getBlock(tempMt.blockName).coordinate;
 			for (auto const &coord : mt.value.GetArray()) {
-				Point first(coord[0].GetDouble(), coord[1].GetDouble());
-				Point second(coord[2].GetDouble(), coord[3].GetDouble());
+				Point first(coord[0].GetDouble() + bc.x, coord[1].GetDouble() + bc.y);
+				Point second(coord[2].GetDouble() + bc.x, coord[3].GetDouble() + bc.y);
 				tempMt.edges.push_back(Edge(first, second));
 			}
             tempNet.MUST_THROUGHs.push_back(tempMt);
@@ -123,20 +125,28 @@ void Net::showNetInfo() const {
 	if (MUST_THROUGHs.size()) {
 		for (const MUST_THROUGH &t : MUST_THROUGHs) {
 			cout << " - " << t.blockName;
-			for (auto const &c : t.edges) {
-				cout << " [" << c.first.x << ", " << c.second.x << "] [" << c.first.y << ", " << c.second.y << "]";
+			Edge c = t.edges[0];
+			cout << " [" << c.first.x << ", " << c.second.x << "] [" << c.first.y << ", " << c.second.y << "]\n";
+			if (t.edges.size() == 1) { continue; }
+			else {
+				for (int i = 0; i < t.blockName.size() + 3; i++) { cout << " "; }
+				Edge c = t.edges[1];
+				cout << " [" << c.first.x << ", " << c.second.x << "] [" << c.first.y << ", " << c.second.y << "]\n";
 			}
-			cout << endl;
 		}
 	}
 	cout << "HMFT_MUST_THROUGH: " << endl;
 	if (HMFT_MUST_THROUGHs.size()) {
 		for (const MUST_THROUGH &t : HMFT_MUST_THROUGHs){
 			cout << " - " << t.blockName;
-			for (auto const &c : t.edges) {
-				cout << " [" << c.first.x << ", " << c.second.x << "] [" << c.first.y << ", " << c.second.y << "]";
+			Edge c = t.edges[0];
+			cout << " [" << c.first.x << ", " << c.second.x << "] [" << c.first.y << ", " << c.second.y << "]\n";
+			if (t.edges.size() == 1) { continue; }
+			else {
+				for (int i = 0; i < t.blockName.size() + 3; i++) { cout << " "; }
+				Edge c = t.edges[1];
+				cout << " [" << c.first.x << ", " << c.second.x << "] [" << c.first.y << ", " << c.second.y << "]\n";
 			}
-			cout << endl;
 		}
 	}
 	cout << "----------------------" << endl;

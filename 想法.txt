@@ -436,3 +436,6 @@ int main() {
 }
 
 在執行到main中的印出emp.office->address時，會無法印出東西，或直接結束程式，請問要如何修改？
+
+d(ln(dmu)) < 10/ln(ln(mu)) && d(dpsi) < sqrt(costUpS(1))
+psi + dpsi > (costUpS(1) + costUpS(2))
