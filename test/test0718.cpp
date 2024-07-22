@@ -2,6 +2,7 @@
 #include <vector>
 #include <memory>
 
+
 class MyClass {
 public:
     MyClass(int v) : value(v) {}

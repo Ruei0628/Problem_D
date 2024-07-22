@@ -1,5 +1,6 @@
 #include "Net.h"
 #include "Band.h"
+#include <fstream>
 #include <iomanip>
 #include <memory>
 
@@ -50,8 +51,8 @@ void bandSearchAlgorithm(Net &net, Chip &chip, vector<shared_ptr<Band>> &recordP
     CTB.push_back(make_shared<Band>(target, 1, edges));
     CTB.push_back(make_shared<Band>(target, 0, edges));
 
-    shared_ptr<Band> sourceBandsBackTrace = nullptr;
-    shared_ptr<Band> targetBandsBackTrace = nullptr;
+    shared_ptr<Band> sourceBackTrace = nullptr;
+    shared_ptr<Band> targetBackTrace = nullptr;
 
     if (debugInfo) cout << "step 1 complete\n";
 
@@ -71,9 +72,9 @@ void bandSearchAlgorithm(Net &net, Chip &chip, vector<shared_ptr<Band>> &recordP
         }
 		
         // step 2: check if intersect
-        if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, CSB, CTB)) break;
-        if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, CSB, OTB)) break;
-        if (checkIfIntersect(sourceBandsBackTrace, targetBandsBackTrace, OSB, CTB)) break;
+        if (checkIfIntersect(sourceBackTrace, targetBackTrace, CSB, CTB)) break;
+        if (checkIfIntersect(sourceBackTrace, targetBackTrace, CSB, OTB)) break;
+        if (checkIfIntersect(sourceBackTrace, targetBackTrace, OSB, CTB)) break;
 
         if (debugInfo) cout << "step 2 complete\n";
 
@@ -148,17 +149,17 @@ void bandSearchAlgorithm(Net &net, Chip &chip, vector<shared_ptr<Band>> &recordP
     cout << "Path found! ";
 
     // Backtrace from source Band
-    while (sourceBandsBackTrace) {
-        recordPath.push_back(sourceBandsBackTrace);
-        sourceBandsBackTrace = sourceBandsBackTrace->parent;
+    while (sourceBackTrace) {
+        recordPath.push_back(sourceBackTrace);
+        sourceBackTrace = sourceBackTrace->parent;
     }
 
     reverse(recordPath.begin(), recordPath.end()); // Reverse to get path from source to target
 
     // Backtrace from target Band
-    while (targetBandsBackTrace) {
-        recordPath.push_back(targetBandsBackTrace);
-        targetBandsBackTrace = targetBandsBackTrace->parent;
+    while (targetBackTrace) {
+        recordPath.push_back(targetBackTrace);
+        targetBackTrace = targetBackTrace->parent;
     }
 
     // Print the path
@@ -169,18 +170,102 @@ void bandSearchAlgorithm(Net &net, Chip &chip, vector<shared_ptr<Band>> &recordP
     return;
 }
 
+void outputToCSV(const string &block, const string &must_through, const string &_net, Chip &chip, Net &net, int id) {
+    ofstream file_block(block);
+    if (!file_block.is_open()) {
+        cerr << "Error opening file: " << block << endl;
+        return;
+    }
+
+    file_block << "group,x,y,is_feed\n";
+
+	for (auto const &b : chip.allBlocks) {
+		if (b->name[0] != 'B') continue;
+		for (auto const &v : b->vertices) {
+			file_block << b->name << "," << v.x << "," << v.y << "," << b->is_feedthroughable <<"\n";
+		}
+	}
+	for (auto const &r : chip.allRegions) {
+		for (auto const &v : r.vertices) {
+			file_block << r.name << "," << v.x << "," << v.y << ",2\n";
+		}
+	}
+
+    file_block.close();
+    cout << "Data written to " << block << endl;
+
+	ofstream file_mt(must_through);
+    if (!file_mt.is_open()) {
+        cerr << "Error opening file: " << block << endl;
+        return;
+    }
+
+    file_mt << "x1,y1,x2,y2,mt\n";
+
+	for (auto const &b : chip.allBlocks) {
+		for (auto const &mt : b->block_port_region) {
+			file_mt << mt.first.x << "," << mt.first.y << "," << mt.second.x << "," << mt.second.y << ",0\n";
+		}
+		for (auto const &hi : b->through_block_edge_net_num) {
+			auto mt = hi.edge;
+			file_mt << mt.first.x << "," << mt.first.y << "," << mt.second.x << "," << mt.second.y << ",1\n";
+		}
+	}
+
+	ofstream file_net(_net);
+    if (!file_net.is_open()) {
+        cerr << "Error opening file: " << block << endl;
+        return;
+    }
+
+	file_net << "type,x,y\n";
+	for (Net const &n : net.allNets) {
+		bool a = 0;
+		file_net << "TX," << n.TX.coord.x << "," <<  n.TX.coord.y << "\n";
+		for (Terminal const &r : n.RXs) {
+			file_net << "RX," << r.coord.x << "," <<  r.coord.y << "\n";
+		}
+		for (auto const &mt : n.MUST_THROUGHs) {
+			for (auto const &e : mt.edges) {
+				file_mt << e.first.x << "," << e.first.y << "," << e.second.x << "," << e.second.y << ",2\n";
+			}
+		}
+		for (auto const &mt : n.HMFT_MUST_THROUGHs) {
+			for (auto const &e : mt.edges) {
+				if (e.fixed() > 5050 && e.fixed() < 5400) a = 1;
+				file_mt << e.first.x << "," << e.first.y << "," << e.second.x << "," << e.second.y << ",3\n";
+			}
+		}
+		if (a) n.showNetInfo();
+	}
+
+	file_mt.close();
+    cout << "Data written to " << must_through << endl;
+
+	file_net.close();
+    cout << "Data written to " << _net << endl;
+}
+
 int main() {
 	cout << fixed << setprecision(3);
-	 
-	for (int testCase = 0; testCase < 7; testCase++) {
-		cout << "===================[ " << testCase << " ]===================\n";
-		Chip chip(testCase);
 	
-		for (auto const &b : chip.allBlocks) {
-			if (b->block_port_region.size() || b->through_block_edge_net_num.size()) {
-				if (b->facingFlip.compare(" N")) b->showBlockInfo();
-			}
-    	}
+	int testCase = 3;
+	
+	Chip chip(testCase);
+
+	Net net;
+	net.ParserAllNets(testCase, chip);
+
+	outputToCSV("zzb.csv", "zzm.csv", "zzn.csv", chip, net, 2550);
+	chip.getBlock("BLOCK_57").showBlockInfo();
+	chip.getBlock("BLOCK_58").showBlockInfo();
+
+	return 0;
+
+	for (Net const &n : net.allNets) {
+		if (n.MUST_THROUGHs.size() + n.HMFT_MUST_THROUGHs.size() > 4) {
+			n.showNetInfo();
+		}
 	}
 
 	return 0;
@@ -298,11 +383,3 @@ int main() {
 	
 	---------------------*/
 }
-
-/*
-cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ main.cpp Band.cpp Chip.cpp Block.cpp Net.cpp Region.cpp -o main} ; if ($?) { .\main }
-
-cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ test0628.cpp Chip.cpp Block.cpp Net.cpp Probe.cpp Region.cpp  Edge.cpp -o test0628} ; if ($?) { .\main }
-
-cd "c:\Users\照元喔\source\repos\Problem_D\" ; if ($?) { g++ main.cpp Net.cpp -o main} ; if ($?) { .\main }
-*/

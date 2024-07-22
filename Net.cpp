@@ -126,12 +126,12 @@ void Net::showNetInfo() const {
 		for (const MUST_THROUGH &t : MUST_THROUGHs) {
 			cout << " - " << t.blockName;
 			Edge c = t.edges[0];
-			cout << " [" << c.first.x << ", " << c.second.x << "] [" << c.first.y << ", " << c.second.y << "]\n";
-			if (t.edges.size() == 1) { continue; }
+			cout << " (" << c.first.x << ", " << c.first.y << ") (" << c.second.x << ", " << c.second.y << ")\n";
+			if (t.edges.size() == 1) continue;
 			else {
 				for (int i = 0; i < t.blockName.size() + 3; i++) { cout << " "; }
 				Edge c = t.edges[1];
-				cout << " [" << c.first.x << ", " << c.second.x << "] [" << c.first.y << ", " << c.second.y << "]\n";
+				cout << " (" << c.first.x << ", " << c.first.y << ") (" << c.second.x << ", " << c.second.y << ")\n";
 			}
 		}
 	}
@@ -140,12 +140,12 @@ void Net::showNetInfo() const {
 		for (const MUST_THROUGH &t : HMFT_MUST_THROUGHs){
 			cout << " - " << t.blockName;
 			Edge c = t.edges[0];
-			cout << " [" << c.first.x << ", " << c.second.x << "] [" << c.first.y << ", " << c.second.y << "]\n";
+			cout << " (" << c.first.x << ", " << c.first.y << ") (" << c.second.x << ", " << c.second.y << ")\n";
 			if (t.edges.size() == 1) { continue; }
 			else {
 				for (int i = 0; i < t.blockName.size() + 3; i++) { cout << " "; }
 				Edge c = t.edges[1];
-				cout << " [" << c.first.x << ", " << c.second.x << "] [" << c.first.y << ", " << c.second.y << "]\n";
+				cout << " (" << c.first.x << ", " << c.first.y << ") (" << c.second.x << ", " << c.second.y << ")\n";
 			}
 		}
 	}
