@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iomanip>
 #include <memory>
+#include <string>
 
 constexpr double DX = 0.01;
 constexpr double DY = 0.01;
@@ -27,7 +28,7 @@ bool checkIfIntersect(shared_ptr<Band> &source, shared_ptr<Band> &target,
 
 void printBands(const vector<shared_ptr<Band>>& bands) {
     for (const auto& band : bands) { 
-        cout << " > " << *band << endl; 
+        cout << " > " << *band << "\n"; 
     }
 }
 
@@ -39,8 +40,8 @@ void bandSearchAlgorithm(Net &net, Chip &chip, vector<shared_ptr<Band>> &recordP
     Terminal target = net.RXs[0]; // waited to be fix
 
     vector<shared_ptr<Band>> CSB; // stands for current source bands
-    vector<shared_ptr<Band>> OSB; // stands for old source bands
     vector<shared_ptr<Band>> CTB; // stands for current target bands
+    vector<shared_ptr<Band>> OSB; // stands for old source bands
     vector<shared_ptr<Band>> OTB; // stands for old target bands
 
     vector<Edge> &edges = chip.allEdges; // make it referenced
@@ -61,14 +62,10 @@ void bandSearchAlgorithm(Net &net, Chip &chip, vector<shared_ptr<Band>> &recordP
         if (debugInfo) cout << "=== level Of Iteration: " << ++levelOfIteration << " ===\n";
 
         if (debugInfo) {
-            cout << "> CSB:\n";
-            printBands(CSB);
-            cout << "> CTB:\n";
-            printBands(CTB);
-            cout << "> OSB:\n";
-            printBands(OSB);
-            cout << "> OTB:\n";
-            printBands(OTB);
+            cout << "> CSB:\n"; printBands(CSB);
+            cout << "> CTB:\n"; printBands(CTB);
+            cout << "> OSB:\n"; printBands(OSB);
+            cout << "> OTB:\n"; printBands(OTB);
         }
 		
         // step 2: check if intersect
@@ -91,7 +88,7 @@ void bandSearchAlgorithm(Net &net, Chip &chip, vector<shared_ptr<Band>> &recordP
 
         if (debugInfo) cout << "< from source >\n";
         for (const auto &b : CSB) { // from source
-            if (debugInfo) cout << " # band " << *b << endl;
+            if (debugInfo) cout << " # band " << *b << "\n";
 
             vector<Edge> coverageRight = b->generateCoveredRanges(edges, 1);
             vector<Edge> coverageLeft = b->generateCoveredRanges(edges, 0);
@@ -100,13 +97,13 @@ void bandSearchAlgorithm(Net &net, Chip &chip, vector<shared_ptr<Band>> &recordP
             for (auto &esb : tempESB) {
                 if (debugInfo) cout << "  + adding " << *esb;
                 if (esb->alreadyExist(OSB) || esb->alreadyExist(CSB) || esb->alreadyExist(ESB)) {
-                    if (debugInfo) cout << endl;
+                    if (debugInfo) cout << "\n";
                     continue;
                 }
                 ESB.push_back(std::move(esb));
-                if (debugInfo) cout << endl;
+                if (debugInfo) cout << "\n";
             }
-            if (debugInfo) cout << endl;
+            if (debugInfo) cout << "\n";
         }
 
         if (debugInfo) cout << "< from target >\n";
@@ -120,13 +117,13 @@ void bandSearchAlgorithm(Net &net, Chip &chip, vector<shared_ptr<Band>> &recordP
             for (auto &etb : tempETB) {
                 if (debugInfo) cout << "  + adding " << *etb;
                 if (etb->alreadyExist(OTB) || etb->alreadyExist(CTB) || etb->alreadyExist(ETB)) {
-                    if (debugInfo) cout << endl;
+                    if (debugInfo) cout << "\n";
                     continue;
                 }
                 ETB.push_back(std::move(etb));
-                if (debugInfo) cout << endl;
+                if (debugInfo) cout << "\n";
             }
-            if (debugInfo) cout << endl;
+            if (debugInfo) cout << "\n";
         }
 
         // now we obtain all next level bands inside extendedBands
@@ -163,26 +160,21 @@ void bandSearchAlgorithm(Net &net, Chip &chip, vector<shared_ptr<Band>> &recordP
     }
 
     // Print the path
-    cout << "length of Path: " << recordPath.size() << endl;
+    cout << "Length: " << recordPath.size() << "\n";
     printBands(recordPath);
 
-    // No need to manually delete smart pointers
     return;
 }
 
-void outputToCSV(const string &block, const string &must_through, const string &_net, Chip &chip, Net &net, int id) {
+void outputToCSV(const string &block, const string &must_through, const string &_net, 
+				 Chip &chip, Net &net, int id = 9999) {
     ofstream file_block(block);
-    if (!file_block.is_open()) {
-        cerr << "Error opening file: " << block << endl;
-        return;
-    }
-
     file_block << "group,x,y,is_feed\n";
 
 	for (auto const &b : chip.allBlocks) {
 		if (b->name[0] != 'B') continue;
 		for (auto const &v : b->vertices) {
-			file_block << b->name << "," << v.x << "," << v.y << "," << b->is_feedthroughable <<"\n";
+			file_block << b->name << "," << v.x << "," << v.y << "," << b->is_feedthroughable << "\n";
 		}
 	}
 	for (auto const &r : chip.allRegions) {
@@ -195,11 +187,6 @@ void outputToCSV(const string &block, const string &must_through, const string &
     cout << "Data written to " << block << endl;
 
 	ofstream file_mt(must_through);
-    if (!file_mt.is_open()) {
-        cerr << "Error opening file: " << block << endl;
-        return;
-    }
-
     file_mt << "x1,y1,x2,y2,mt\n";
 
 	for (auto const &b : chip.allBlocks) {
@@ -213,30 +200,31 @@ void outputToCSV(const string &block, const string &must_through, const string &
 	}
 
 	ofstream file_net(_net);
-    if (!file_net.is_open()) {
-        cerr << "Error opening file: " << block << endl;
-        return;
-    }
-
 	file_net << "type,x,y\n";
+
 	for (Net const &n : net.allNets) {
-		bool a = 0;
+		if (id != 9999 && n.ID != id) continue;
+		// if (!mtOutsideOfBoundBox(n)) continue;
+		// n.showNetInfo();
+
 		file_net << "TX," << n.TX.coord.x << "," <<  n.TX.coord.y << "\n";
 		for (Terminal const &r : n.RXs) {
 			file_net << "RX," << r.coord.x << "," <<  r.coord.y << "\n";
 		}
+
 		for (auto const &mt : n.MUST_THROUGHs) {
 			for (auto const &e : mt.edges) {
 				file_mt << e.first.x << "," << e.first.y << "," << e.second.x << "," << e.second.y << ",2\n";
 			}
 		}
+
 		for (auto const &mt : n.HMFT_MUST_THROUGHs) {
 			for (auto const &e : mt.edges) {
-				if (e.fixed() > 5050 && e.fixed() < 5400) a = 1;
 				file_mt << e.first.x << "," << e.first.y << "," << e.second.x << "," << e.second.y << ",3\n";
 			}
 		}
-		if (a) n.showNetInfo();
+
+		if (id != 9999) { n.showNetInfo(); break; }
 	}
 
 	file_mt.close();
@@ -249,22 +237,19 @@ void outputToCSV(const string &block, const string &must_through, const string &
 int main() {
 	cout << fixed << setprecision(3);
 	
-	int testCase = 3;
-	
+	//for (int testCase = 0; testCase < 7; testCase++)
+	int testCase = 6;
 	Chip chip(testCase);
-
 	Net net;
 	net.ParserAllNets(testCase, chip);
+	
+	outputToCSV("zzb.csv", "zzm.csv", "zzn.csv", chip, net);
 
-	outputToCSV("zzb.csv", "zzm.csv", "zzn.csv", chip, net, 2550);
-	chip.getBlock("BLOCK_57").showBlockInfo();
-	chip.getBlock("BLOCK_58").showBlockInfo();
-
-	return 0;
-
+	int max = 0;
 	for (Net const &n : net.allNets) {
-		if (n.MUST_THROUGHs.size() + n.HMFT_MUST_THROUGHs.size() > 4) {
-			n.showNetInfo();
+		if (n.MUST_THROUGHs.size() + n.HMFT_MUST_THROUGHs.size() > max) {
+			max = n.MUST_THROUGHs.size() + n.HMFT_MUST_THROUGHs.size();
+			cout << n.ID << ", " << max << '\n';
 		}
 	}
 
@@ -274,9 +259,10 @@ int main() {
 
 	// customed test data
 	Chip tesCh;
-	for (int i = 0; i < 6; i++) { tesCh.allBlocks.push_back(make_unique<Block>("block" + to_string(i))); }
-	tesCh.allBlocks.push_back(make_unique<Block>("testS"));
-	tesCh.allBlocks.push_back(make_unique<Block>("testT"));
+	vector<shared_ptr<Band>> record;
+	for (int i = 0; i < 6; i++) { tesCh.allBlocks.push_back(make_unique<Block>("Block" + to_string(i))); }
+	tesCh.allBlocks.push_back(make_unique<Block>("BtestS"));
+	tesCh.allBlocks.push_back(make_unique<Block>("BtestT"));
 
 	// regular borders
 	tesCh.allBlocks[0]->vertices = { Point(11, 0), Point(11, 9), Point(17, 9), Point(17, 7), Point(14, 7), Point(14, 0) };
@@ -294,10 +280,12 @@ int main() {
 	// make it ordered
 	std::sort(tesCh.allEdges.begin(), tesCh.allEdges.end(), [](const auto& a, const auto& b) { return a.fixed() < b.fixed(); });
 
-	Terminal start("testS", Point(6, 5));
-  	Terminal end("testT", Point(26, 3));
+	Terminal start("BtestS", Point(6, 5));
+  	Terminal end("BtestT", Point(26, 3));
 	Net n(start, end);
+	n.allNets.push_back(n);
 
+	outputToCSV("zzb.csv", "zzm.csv", "zzn.csv", tesCh, n);
 	bandSearchAlgorithm(n, tesCh, record);
 
 	cout << "done" << endl;

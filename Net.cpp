@@ -92,7 +92,7 @@ void Terminal::absoluteCoord (Chip const &chip) {
 	return;
 }
 
-double findBoundBox(vector<Point> const &coords){
+Edge findBoundBox(vector<Point> const &coords){
 	double x_min = coords[0].x, x_max = coords[0].x, y_min = coords[0].y, y_max = coords[0].y;
 	for (auto const &c : coords) {
 		double x_this = c.x, y_this = c.y;
@@ -101,16 +101,16 @@ double findBoundBox(vector<Point> const &coords){
 		if (y_this > y_max) y_max = y_this;
 		if (y_this < y_min) y_min = y_this;
 	}
-	return (x_max - x_min) * (y_max - y_min);
+	return Edge(Point(x_min, y_min), Point(x_max, y_max));
 }
 
-void Net::getBoundBoxArea(){
+Edge Net::getBoundBoxArea() const {
 	vector<Point> coords;
 	for(Terminal const &rx : RXs){
 		coords.push_back(rx.coord);
 	}
 	coords.push_back(TX.coord);
-	boundBoxArea = findBoundBox(coords);
+	return findBoundBox(coords);
 }
 
 void Net::showNetInfo() const {

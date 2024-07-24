@@ -38,7 +38,7 @@ public:
 	vector<Net> allNets;
 
 	double boundBoxArea;
-	void getBoundBoxArea();
+	Edge getBoundBoxArea() const;
 
 	void ParserAllNets(int const &testCase, Chip const &chip);
 	Net getNet(int const &ID) const;
